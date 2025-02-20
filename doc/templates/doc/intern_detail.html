@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+- добавление навыков и резюме при создании<br>
+- просмотр файла<br>
+- отображать лейблы только при наличии данных<br>
+- заявка на работу от организации?<br>
+
+    <h1 class="mb-4">Данные студента</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ intern.last_name }} {{ intern.first_name }} {{ intern.middle_name }}</h5>
+            <p class="card-text"><strong>Телефон:</strong> {{ intern.phone_number }}</p>
+            <p class="card-text"><strong>Метро:</strong> {{ intern.metro_station }}</p>
+            <p class="card-text"><strong>Группа:</strong> {{ intern.group.name }}</p>
+            <p class="card-text"><strong>Организация:</strong> {{ intern.organization.full_name }}</p>
+            <p class="card-text"><strong>Навыки:</strong>
+                {% for tag in intern.tags.all %}
+                    {{ tag.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+            {% if intern.resume %}
+                <p class="card-text">
+                    <strong>Резюме:</strong>
+                    {% if intern.resume_access_granted %}
+                        <a href="{{ intern.resume.url }}" target="_blank">Скачать резюме</a>
+                    {% else %}
+                        <button id="request-resume-btn" class="btn btn-primary" data-intern-id="{{ intern.id }}">Запросить резюме</button>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+    <a href="{% url 'interns_list' %}" class="btn btn-dark mt-3">Назад к списку</a>
+</div>
+
+<script>
+document.getElementById('request-resume-btn').addEventListener('click', function() {
+    const internId = this.getAttribute('data-intern-id');
+    fetch(`/request_resume_access/${internId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload(); // Перезагружаем страницу для обновления состояния
+        } else {
+            alert(data.message);
+        }
+    });
+});
+</script>
+{% endblock %}

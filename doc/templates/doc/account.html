@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block content %}
+    <style>
+        /* Подключение шрифта Oswald */
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap');
+
+        /* Общие стили */
+        body {
+            font-family: 'Oswald', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .account-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .account-title {
+            margin-bottom: 30px;
+            font-size: 2em;
+            color: #333;
+            text-align: center;
+        }
+
+        .user-info {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            display: flex; /* Используем flexbox */
+            flex-direction: column; /* Вертикальное расположение элементов */
+        }
+
+        .user-name {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .info-details {
+            font-size: 1rem;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 20px; /* Отступ перед кнопкой */
+        }
+
+        .info-details p {
+            margin: 5px 0;
+        }
+
+        .pending-status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #ffeeba;
+            border: 1px solid #ffdf7e;
+            border-radius: 5px;
+            color: #856404;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        /* Стили для кнопки выхода */
+        .logout-btn {
+            display: flex; /* Используем flexbox для выравнивания */
+            justify-content: center; /* Выравнивание по горизонтали */
+            margin-top: auto; /* Прикрепляем кнопку к нижней части контейнера */
+        }
+
+        .logout-btn button {
+            padding: 5px 15px;
+            background-color: #343a40;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-btn button:hover {
+            background-color: #23272b;
+        }
+    </style>
+
+    <div class="account-container">
+        <h1 class="account-title">Личный кабинет</h1>
+
+        {% if request.session.email %}
+            <div class="user-info">
+                <h3 class="user-name">{{ request.session.user_surname }} {{ request.session.user_name }} {{ request.session.user_patronymic }}</h3>
+                <div class="info-details">
+                    <p><strong>Email:</strong> {{ request.session.email }}</p>
+                    <p>{{ request.session.role }} 👩🏻‍🏫</p>
+                </div>
+
+                <!-- Кнопка выхода -->
+                <div class="logout-btn">
+                    <a href="{% url 'logoutPage' %}">
+                        <button type="submit">Выйти</button>
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <p>Вы не вошли в систему. Пожалуйста, войдите или зарегистрируйтесь.</p>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 form-container">
+            <form method="post" enctype="multipart/form-data" class="p-4">
+                {% csrf_token %}
+                <h2>Вход</h2>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        Некорректные данные:
+                        {{ form.errors }}
+                    </div>
+                {% endif %}
+
+                <!-- Вывод полей формы по одному -->
+                <div class="form-group">
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.password.label_tag }}
+                    {{ form.password }}
+                </div>
+
+                <!-- Кнопка "Войти" по центру -->
+                <div class="d-flex justify-content-center mb-3">
+                    <button type="submit" class="btn btn-dark">Войти</button>
+                </div>
+
+                <!-- Кнопка "Зарегистрироваться" слева (с контурной заливкой) -->
+                <div class="d-flex justify-content-start">
+                    <a href="{% url 'regPage' %}" class="btn btn-outline-dark">Нет аккаунта? Зарегистрироваться</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
