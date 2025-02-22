@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <div class="form-container">
+            <h1>Регистрация организации</h1>
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Данные организации -->
+                <h2>Данные организации</h2>
+                <div class="form-group">
+                    <label for="{{ form.full_name.id_for_label }}">Полное наименование:</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.legal_address.id_for_label }}">Юридический адрес:</label>
+                    {{ form.legal_address }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.actual_address.id_for_label }}">Фактический адрес:</label>
+                    {{ form.actual_address }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.inn.id_for_label }}">ИНН:</label>
+                    {{ form.inn }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.kpp.id_for_label }}">КПП:</label>
+                    {{ form.kpp }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.ogrn.id_for_label }}">ОГРН:</label>
+                    {{ form.ogrn }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.phone_number.id_for_label }}">Номер телефона:</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">Электронная почта:</label>
+                    {{ form.email }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}">Пароль:</label>
+                    {{ form.password }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.confirm_password.id_for_label }}">Подтвердите пароль:</label>
+                    {{ form.confirm_password }}
+                </div>
+
+                <!-- Данные руководителя организации -->
+                <h2>Данные руководителя организации</h2>
+                <div class="form-group">
+                    <label for="{{ form.supervisor_last_name.id_for_label }}">Фамилия руководителя:</label>
+                    {{ form.supervisor_last_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.supervisor_first_name.id_for_label }}">Имя руководителя:</label>
+                    {{ form.supervisor_first_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.supervisor_middle_name.id_for_label }}">Отчество руководителя:</label>
+                    {{ form.supervisor_middle_name }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.supervisor_phone_number.id_for_label }}">Номер телефона руководителя:</label>
+                    {{ form.supervisor_phone_number }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.supervisor_position.id_for_label }}">Должность руководителя:</label>
+                    {{ form.supervisor_position }}
+                </div>
+
+                <!-- Кнопка отправки формы -->
+                <div class="form-group">
+                    <button type="submit" class="btn btn-dark">Зарегистрироваться</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

@@ -188,7 +188,75 @@ def request_resume_access(request, intern_id):
 
 # Главная страница
 def index(request):
-    return render(request, 'doc/index.html')
+    pending_registrations_count = Organization.objects.filter(is_registration_request=True, is_approved=False).count()
+    context = {
+        "pending_registrations_count": pending_registrations_count,
+    }
+
+    if request.session.get("role") == "Организация":
+        organization_id = request.session.get("organization_id")
+        organization = Organization.objects.get(id=organization_id)
+        context["organization"] = organization
+
+    return render(request, "doc/index.html", context)
+
+
+def register_organization(request):
+    if request.method == "POST":
+        form = OrganizationRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Заявка на регистрацию организации успешно отправлена. Ожидайте подтверждения.")
+            return redirect("indexPage")
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    else:
+        form = OrganizationRegistrationForm()
+    return render(request, "doc/register_organization.html", {"form": form})
+
+
+def organization_login(request):
+    if request.method == "POST":
+        form = OrganizationLoginForm(request.POST)
+        if form.is_valid():
+            organization = form.cleaned_data["organization"]
+            # Сохраняем данные организации в сессии
+            request.session["organization_id"] = organization.id
+            request.session["role"] = "Организация"
+            request.session["organization_name"] = organization.full_name
+            messages.success(request, f"Вы успешно авторизовались как {organization.full_name}.")
+            return redirect("index")
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    else:
+        form = OrganizationLoginForm()
+    return render(request, "doc/organization_login.html", {"form": form})
+
+
+def organization_logout(request):
+    if request.session.get("role") == "Организация":
+        request.session.flush()
+    return redirect("index")
+
+
+def organizations_list(request):
+    # Получаем только те организации, которые подали заявку на регистрацию и не подтверждены
+    pending_organizations = Organization.objects.filter(is_registration_request=True, is_approved=False)
+    return render(request, 'doc/organizations_list.html', {'organizations': pending_organizations})
+
+
+@csrf_exempt
+def approve_organization(request, organization_id):
+    if request.method == 'POST':
+        organization = Organization.objects.get(id=organization_id)
+        organization.is_approved = True
+        organization.is_registration_request = False  # Снимаем флаг заявки на регистрацию
+        organization.save()
+        return JsonResponse(
+            {'success': True, 'message': f'Организация "{organization.full_name}" успешно подтверждена.'})
+    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
 
 
 # Вывод данных пользователя из сессии
@@ -263,3 +331,94 @@ def auth(request):
     else:
         form = LoginForm()
     return render(request, 'doc/auth.html', {'form': form})
+
+
+def admin_panel(request):
+    # Получаем данные для всех моделей
+    interns = Intern.objects.all()
+    groups = Group.objects.all()
+    organizations = Organization.objects.all()
+    supervisors = CollegeSupervisor.objects.all()
+    specialties = Specialty.objects.all()
+    org_supervisors = OrganizationSupervisor.objects.all()
+
+    context = {
+        'interns': interns,
+        'groups': groups,
+        'organizations': organizations,
+        'supervisors': supervisors,
+        'specialties': specialties,
+        'org_supervisors': org_supervisors,
+    }
+    return render(request, 'doc/admin_panel.html', context)
+
+
+def admin_add(request, model_name):
+    if request.method == 'POST':
+        form = get_form_by_model_name(model_name, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Запись успешно добавлена.')
+            return redirect('admin_panel')
+        else:
+            messages.error(request, 'Ошибка при добавлении записи.')
+    else:
+        form = get_form_by_model_name(model_name)
+
+    return render(request, 'doc/admin_add.html', {'form': form, 'model_name': model_name})
+
+
+def admin_edit(request, model_name, pk):
+    model = get_model_by_name(model_name)
+    instance = get_object_or_404(model, id=pk)
+
+    if request.method == 'POST':
+        form = get_form_by_model_name(model_name, request.POST, instance=instance)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Запись успешно обновлена.')
+            return redirect('admin_panel')
+        else:
+            messages.error(request, 'Ошибка при обновлении записи.')
+    else:
+        form = get_form_by_model_name(model_name, instance=instance)
+
+    return render(request, 'doc/admin_edit.html', {'form': form, 'model_name': model_name, 'pk': pk})
+
+
+def admin_delete(request, model_name, pk):
+    model = get_model_by_name(model_name)
+    instance = get_object_or_404(model, id=pk)
+
+    if request.method == 'POST':
+        instance.delete()
+        messages.success(request, f'Запись успешно удалена.')
+        return redirect('admin_panel')
+
+    return render(request, 'doc/admin_delete.html', {'model_name': model_name, 'pk': pk})
+
+
+# Вспомогательные функции
+def get_model_by_name(model_name):
+    models_dict = {
+        'intern': Intern,
+        'group': Group,
+        'organization': Organization,
+        'college_supervisor': CollegeSupervisor,
+        'specialty': Specialty,
+        'org_supervisor': OrganizationSupervisor,
+    }
+    return models_dict.get(model_name)
+
+
+def get_form_by_model_name(model_name, *args, **kwargs):
+    forms_dict = {
+        'intern': InternForm,
+        'group': GroupForm,
+        'organization': OrganizationForm,
+        'college_supervisor': CollegeSupervisorForm,
+        'specialty': SpecialtyForm,
+        'org_supervisor': OrganizationSupervisorForm,
+    }
+    form_class = forms_dict.get(model_name)
+    return form_class(*args, **kwargs)

@@ -6,6 +6,7 @@ import generate_docx
 from settings_loader import *  # Загрузка настроек Django
 from doc.models import Intern, Group, Organization  # Импортируйте нужные модели
 
+
 # сделать загрузку файла базы практик по группам
 # группировка по группам
 # мин макс врап текст таблица
@@ -36,6 +37,7 @@ def fetch_students():
         messagebox.showerror("Ошибка", f"Ошибка при получении данных: {e}")
         return []
 
+
 # Функция для фильтрации студентов по поиску
 def filter_students(search_text):
     if search_text.strip() == "":
@@ -46,6 +48,7 @@ def filter_students(search_text):
         )]
         update_table(filtered)
 
+
 # Функция для фильтрации студентов по группе
 def filter_by_group(group_name):
     if group_name == "Все группы":
@@ -54,6 +57,7 @@ def filter_by_group(group_name):
         filtered = [student for student in students_data if student[6] == group_name]
         update_table(filtered)
 
+
 # Обновление таблицы студентов
 def update_table(data):
     for row in table.get_children():
@@ -61,9 +65,11 @@ def update_table(data):
     for student in data:
         table.insert("", "end", values=student)
 
+
 # Функция для создания файла .docx
 def create_docx_file():
-    selected_groups = [group_var.get()] if group_var.get() != "Все группы" else list(Group.objects.values_list('name', flat=True))
+    selected_groups = [group_var.get()] if group_var.get() != "Все группы" else list(
+        Group.objects.values_list('name', flat=True))
     if not selected_groups:
         messagebox.showwarning("Предупреждение", "Выберите хотя бы одну группу.")
         return
@@ -79,6 +85,7 @@ def create_docx_file():
     except Exception as e:
         messagebox.showerror("Ошибка", f"Ошибка при создании файла: {e}")
 
+
 # Создание главного окна
 root = tk.Tk()
 root.title("Список студентов")
@@ -91,11 +98,14 @@ style.set_theme("arc")  # Используем светлую тему
 
 # Настройка цветовой палитры
 style.configure("TLabel", font=("Oswald", 14), foreground="#333", background="white")
-style.configure("TButton", font=("Oswald", 12, "bold"), background="#f8f9fa", foreground="#333", padding=10, borderwidth=1)
+style.configure("TButton", font=("Oswald", 12, "bold"), background="#f8f9fa", foreground="#333", padding=10,
+                borderwidth=1)
 style.map("TButton", background=[("active", "#e9ecef")])  # Светлый фон при наведении
 style.configure("TEntry", font=("Oswald", 12), foreground="#333", background="white", padding=5)
-style.configure("Treeview", font=("Oswald", 12), rowheight=30, background="white", foreground="#333", fieldbackground="white")
-style.configure("Treeview.Heading", font=("Oswald", 14, "bold"), background="#f8f9fa", foreground="#333")  # Темный текст на заголовках
+style.configure("Treeview", font=("Oswald", 12), rowheight=30, background="white", foreground="#333",
+                fieldbackground="white")
+style.configure("Treeview.Heading", font=("Oswald", 14, "bold"), background="#f8f9fa",
+                foreground="#333")  # Темный текст на заголовках
 style.map("Treeview", background=[("selected", "#E0E0E0")])
 
 # Верхняя панель с заголовком и кнопками

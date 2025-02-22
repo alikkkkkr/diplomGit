@@ -181,6 +181,9 @@ class Organization(models.Model):
     ogrn = models.CharField(max_length=13, blank=True, null=True, verbose_name="ОГРН")
     phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Номер телефона")
     email = models.EmailField(blank=True, null=True,verbose_name="Электронная почта")
+    is_approved = models.BooleanField(default=False, verbose_name="Подтверждено")
+    password = models.CharField(max_length=128, verbose_name="Пароль", blank=True, null=True)
+    is_registration_request = models.BooleanField(default=False, verbose_name="Заявка на регистрацию")
 
     # def validate_phone_number(self):
     #     if not re.match(r"^\+?[78]\d{10}$", self.phone_number):
@@ -207,6 +210,14 @@ class Organization(models.Model):
     # def save(self, *args, **kwargs):
     #     self.full_clean()
     #     super().save(*args, **kwargs)
+
+    def set_password(self, raw_password):
+        """Хеширует пароль и сохраняет его в поле password."""
+        self.password = make_password(raw_password)
+
+    def check_password(self, raw_password):
+        """Проверяет, совпадает ли переданный пароль с хешированным паролем."""
+        return check_password(raw_password, self.password)
 
     def __str__(self):
         return self.full_name

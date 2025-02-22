@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Заявки на регистрацию организаций</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for organization in organizations %}
+                    <tr id="organization-row-{{ organization.id }}">
+                        <td>{{ organization.full_name }}</td>
+                        <td>
+                            <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#approveModal{{ organization.id }}">
+                                Подтвердить
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Модальное окно для подтверждения -->
+                    <div class="modal fade" id="approveModal{{ organization.id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ organization.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="approveModalLabel{{ organization.id }}">Подтверждение организации</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Вы уверены, что хотите подтвердить организацию "{{ organization.full_name }}"?</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                    <form id="approve-form-{{ organization.id }}" class="approve-form" method="post" action="{% url 'approve_organization' organization.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-dark">Подтвердить</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

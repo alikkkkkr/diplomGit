@@ -1,7 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <div class="container">
+        <h1>Главная страница</h1>
 
-may
+        <!-- Отображение для организаций -->
+        {% if request.session.role == 'Организация' %}
+            <div class="alert alert-success">
+                <p>Вы авторизованы как организация: <strong>{{ organization.full_name }}</strong>.</p>
+                <a href="{% url 'organization_logout' %}" class="btn btn-dark">Выйти</a>
+            </div>
+        {% endif %}
 
+        <!-- Отображение для преподавателей -->
+        {% if request.session.role == 'Преподаватель' %}
+            {% if pending_registrations_count > 0 %}
+                <div class="alert alert-info">
+                    <p>
+                        У вас есть {{ pending_registrations_count }} заявок на регистрацию организаций, ожидающих подтверждения.
+                        <a href="{% url 'organizations_list' %}" class="btn btn-dark">Перейти к подтверждению</a>
+                    </p>
+                </div>
+            {% else %}
+            {% endif %}
+        {% endif %}
+
+
+
+    </div>
 {% endblock %}

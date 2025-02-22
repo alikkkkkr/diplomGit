@@ -101,6 +101,78 @@ class OrganizationForm(forms.ModelForm):
         fields = ['full_name', 'legal_address', 'actual_address', 'inn', 'kpp', 'ogrn', 'phone_number', 'email']
 
 
+class OrganizationRegistrationForm(forms.ModelForm):
+    # Поля для организации
+    password = forms.CharField(widget=forms.PasswordInput, label="Пароль")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Подтвердите пароль")
+
+    # Поля для руководителя организации
+    supervisor_last_name = forms.CharField(max_length=50, label="Фамилия руководителя")
+    supervisor_first_name = forms.CharField(max_length=50, label="Имя руководителя")
+    supervisor_middle_name = forms.CharField(max_length=50, label="Отчество руководителя", required=False)
+    supervisor_phone_number = forms.CharField(max_length=15, label="Номер телефона руководителя")
+    supervisor_position = forms.CharField(max_length=100, label="Должность руководителя")
+
+    class Meta:
+        model = Organization
+        fields = [
+            'full_name', 'legal_address', 'actual_address', 'inn', 'kpp', 'ogrn',
+            'phone_number', 'email', 'password', 'confirm_password'
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            raise forms.ValidationError("Пароли не совпадают.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        organization = super().save(commit=False)
+        organization.set_password(self.cleaned_data["password"])
+        organization.is_registration_request = True  # Устанавливаем флаг заявки на регистрацию
+
+        if commit:
+            organization.save()
+            # Создаем руководителя организации
+            supervisor = OrganizationSupervisor(
+                last_name=self.cleaned_data["supervisor_last_name"],
+                first_name=self.cleaned_data["supervisor_first_name"],
+                middle_name=self.cleaned_data["supervisor_middle_name"],
+                phone_number=self.cleaned_data["supervisor_phone_number"],
+                position=self.cleaned_data["supervisor_position"],
+                organization=organization
+            )
+            supervisor.save()
+
+        return organization
+
+
+class OrganizationLoginForm(forms.Form):
+    email = forms.EmailField(label="Электронная почта")
+    password = forms.CharField(label="Пароль", widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        password = cleaned_data.get("password")
+
+        try:
+            organization = Organization.objects.get(email=email)
+            if not organization.check_password(password):
+                raise forms.ValidationError("Неверный пароль.")
+            if not organization.is_approved:
+                raise forms.ValidationError("Организация не подтверждена.")
+        except Organization.DoesNotExist:
+            raise forms.ValidationError("Организация с таким email не найдена.")
+
+        cleaned_data["organization"] = organization
+        return cleaned_data
+
+
 # Форма для модели Specialty
 class SpecialtyForm(forms.ModelForm):
     class Meta:
