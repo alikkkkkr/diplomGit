@@ -33,4 +33,7 @@ urlpatterns = [
     path('adm/add/<str:model_name>/', v.admin_add, name='admin_add'),
     path('adm/edit/<str:model_name>/<int:pk>/', v.admin_edit, name='admin_edit'),
     path('adm/delete/<str:model_name>/<int:pk>/', v.admin_delete, name='admin_delete'),
+
+    # Студенты
+    path('student_index/', v.student_index, name='student_index'),
 ]

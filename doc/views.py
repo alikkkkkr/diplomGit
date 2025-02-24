@@ -5,9 +5,10 @@ from .forms import *
 import pandas as pd
 from django.core.exceptions import ValidationError
 from .models import *
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.core.paginator import Paginator
 
 
 def upload_interns(request):
@@ -259,6 +260,10 @@ def approve_organization(request, organization_id):
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
 
 
+def student_index(request):
+    return render(request, 'doc/student_index.html')
+
+
 # Вывод данных пользователя из сессии
 def useraccount(request):
     if request.session.get('email'):
@@ -307,14 +312,12 @@ def register(request):
     return render(request, 'doc/reg.html', {'form': form})
 
 
-# Реализация функции авторизации пользователя и сохранение его в сессии
 def auth(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-
             try:
                 user = Account.objects.get(email=email)
                 if check_password(password, user.password):
@@ -323,7 +326,16 @@ def auth(request):
                     request.session['role'] = user.role.name
                     request.session.modified = True
 
-                    return redirect('indexPage')  # После успешной авторизации перенаправляем на главную страницу
+                    # Определяем страницу для перенаправления в зависимости от роли
+                    if user.role.name == "Преподаватель" or user.role.name == "Организация":
+                        return redirect('indexPage')  # Перенаправление на главную страницу
+                    elif user.role.name == "Администратор":
+                        return redirect('admin_panel')  # Перенаправление на панель администратора
+                    elif user.role.name == "Студент":
+                        return redirect('student_index')  # Перенаправление на страницу студента
+                    else:
+                        messages.error(request, 'Неизвестная роль пользователя.')
+                        return redirect('auth')  # Возвращаем обратно на страницу авторизации
                 else:
                     messages.error(request, 'Неверный email или пароль.')
             except Account.DoesNotExist:
@@ -334,28 +346,56 @@ def auth(request):
 
 
 def admin_panel(request):
-    # Получаем данные для всех моделей
-    interns = Intern.objects.all()
+    # Получаем данные для всех моделей с пагинацией
+    interns = Intern.objects.all().order_by('last_name')  # Сортировка по фамилии
     groups = Group.objects.all()
     organizations = Organization.objects.all()
     supervisors = CollegeSupervisor.objects.all()
     specialties = Specialty.objects.all()
     org_supervisors = OrganizationSupervisor.objects.all()
 
+    # Фильтрация практикантов по группе
+    selected_group = request.GET.get('group')
+    if selected_group:
+        interns = interns.filter(group_id=selected_group)
+
+    # Пагинация для всех моделей
+    paginator_interns = Paginator(interns, 35)
+    paginator_groups = Paginator(groups, 20)
+    paginator_organizations = Paginator(organizations, 20)
+    paginator_supervisors = Paginator(supervisors, 20)
+    paginator_specialties = Paginator(specialties, 20)
+    paginator_org_supervisors = Paginator(org_supervisors, 20)
+
+    page_number = request.GET.get('page')
+    interns_page = paginator_interns.get_page(page_number)
+    groups_page = paginator_groups.get_page(page_number)
+    organizations_page = paginator_organizations.get_page(page_number)
+    supervisors_page = paginator_supervisors.get_page(page_number)
+    specialties_page = paginator_specialties.get_page(page_number)
+    org_supervisors_page = paginator_org_supervisors.get_page(page_number)
+
     context = {
-        'interns': interns,
-        'groups': groups,
-        'organizations': organizations,
-        'supervisors': supervisors,
-        'specialties': specialties,
-        'org_supervisors': org_supervisors,
+        'interns': interns_page,
+        'groups': groups_page,
+        'organizations': organizations_page,
+        'supervisors': supervisors_page,
+        'specialties': specialties_page,
+        'org_supervisors': org_supervisors_page,
+        'all_groups': groups,  # Для выпадающего списка групп
     }
     return render(request, 'doc/admin_panel.html', context)
 
 
 def admin_add(request, model_name):
+    try:
+        # Fetch the form class for the given model_name
+        form_class = get_form_by_model_name(model_name)
+    except ValueError as e:
+        raise Http404(str(e))  # Raise a 404 error if the model_name is invalid
+
     if request.method == 'POST':
-        form = get_form_by_model_name(model_name, request.POST)
+        form = form_class(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, f'Запись успешно добавлена.')
@@ -363,7 +403,7 @@ def admin_add(request, model_name):
         else:
             messages.error(request, 'Ошибка при добавлении записи.')
     else:
-        form = get_form_by_model_name(model_name)
+        form = form_class()
 
     return render(request, 'doc/admin_add.html', {'form': form, 'model_name': model_name})
 
@@ -408,7 +448,10 @@ def get_model_by_name(model_name):
         'specialty': Specialty,
         'org_supervisor': OrganizationSupervisor,
     }
-    return models_dict.get(model_name)
+    model_class = models_dict.get(model_name)
+    if model_class is None:
+        raise ValueError(f"Модель с именем '{model_name}' не найдена.")
+    return model_class
 
 
 def get_form_by_model_name(model_name, *args, **kwargs):
@@ -421,4 +464,6 @@ def get_form_by_model_name(model_name, *args, **kwargs):
         'org_supervisor': OrganizationSupervisorForm,
     }
     form_class = forms_dict.get(model_name)
+    if form_class is None:
+        raise ValueError(f"Форма для модели '{model_name}' не найдена.")
     return form_class(*args, **kwargs)
