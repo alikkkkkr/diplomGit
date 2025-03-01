@@ -1,153 +1,224 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-between align-items-center mb-4">
-        <div class="col-md-6">
-            <h1 class="mb-3" style="font-weight: 700; font-size: 2rem;">Список студентов</h1>
+    <div class="container mt-5">
+        <div class="row justify-content-between align-items-center mb-4">
+            <!-- Заголовок и кнопки для студентов -->
+            <div class="col-md-6">
+                <h1 class="mb-3" style="font-weight: 700; font-size: 2rem;">Список студентов</h1>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <a href="{% url 'upload_interns' %}" class="btn btn-dark">Загрузить файл Excel</a>
+                <a href="{% url 'add_intern' %}" class="btn btn-dark">Добавить студента</a>
+            </div>
         </div>
-        <div class="col-md-6 text-md-end">
-            <a href="{% url 'upload_interns' %}" class="btn btn-dark">Загрузить файл Excel</a>
-            <a href="{% url 'add_intern' %}" class="btn btn-dark">Добавить студента</a>
-        </div>
-    </div>
 
-    <!-- Поле поиска -->
-    <div class="mb-4">
-        <input type="text" id="searchInput" class="form-control" placeholder="Поиск по ФИО, телефону, метро или организации...">
-    </div>
-
-    <!-- Выпадающий список групп -->
-    <div class="mb-4">
-        <div class="dropdown">
-            <button class="btn btn-dark dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                Перейти к группе
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton" style="max-height: 300px; overflow-y: auto;">
-                {% regroup interns|dictsort:"group.name" by group.name as intern_groups %}
-                {% for group in intern_groups %}
-                    <li><a class="dropdown-item" href="#group-{{ group.grouper|slugify }}">{{ group.grouper }}</a></li>
+        <!-- Карточки с заявками на регистрацию организаций -->
+        {% if organizations %}
+            <div class="row mb-4">
+                <h2 class="mb-3" style="font-weight: 600; font-size: 1.8rem; color: #333;">
+                    Заявки на регистрацию организаций
+                </h2>
+                {% for organization in organizations %}
+                    <div class="col-md-6 mb-3">
+                        <div class="registration-card">
+                            <h5>{{ organization.full_name|default:"-" }}</h5>
+                            <p class="text-muted">
+                                <strong>ИНН:</strong> {{ organization.inn|default:"-" }}<br>
+                                <strong>Телефон:</strong> {{ organization.phone_number|default:"-" }}<br>
+                                <strong>Email:</strong> {{ organization.email|default:"-" }}
+                            </p>
+                            <div class="d-flex justify-content-end">
+                                <button class="btn btn-dark btn-sm"
+                                        onclick="approveOrganization({{ organization.id }})">
+                                    Подтвердить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 {% endfor %}
-            </ul>
-        </div>
-    </div>
+            </div>
+        {% endif %}
 
-    <!-- Группировка студентов по группам -->
-    {% regroup interns|dictsort:"group.name" by group.name as intern_groups %}
-    {% for group in intern_groups %}
-    <div class="mb-5" id="group-{{ group.grouper|slugify }}">
-        <!-- Заголовок группы -->
-        <h2 class="mb-3" style="font-weight: 600; font-size: 1.8rem; color: #333;">
-            {{ group.grouper }} <!-- Название группы -->
-        </h2>
-        <!-- Таблица с данными для текущей группы -->
-        <div class="table-responsive">
-            <table class="table table-bordered table-striped">
-                <thead class="table-dark">
-                    <tr>
-                        <th scope="col" class="text-center" style="width: 5%;">№</th>
-                        <th scope="col" style="width: 18%;">Фамилия</th>
-                        <th scope="col" style="width: 15%;">Имя</th>
-                        <th scope="col" style="width: 18%;">Отчество</th>
-                        <th scope="col" class="text-center" style="width: 15%;">Телефон</th>
-                        <th scope="col" class="text-center" style="width: 12%;">Метро</th>
-                        <th scope="col" class="text-center" style="width: 22%;">Организация</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for intern in group.list|dictsort:"last_name" %}
-                    <tr {% if intern.is_modified %}class="modified-row"{% endif %}>
-                        <td class="text-center">{{ forloop.counter }}</td> <!-- Нумерация студентов в группе -->
-                        <td class="editable" data-field="last_name" data-id="{{ intern.id }}">
-                            <a href="{% url 'intern_detail' intern.id %}">{{ intern.last_name }}</a></td>
-                        <td class="editable" data-field="first_name" data-id="{{ intern.id }}">{{ intern.first_name }}</td>
-                        <td class="editable" data-field="middle_name" data-id="{{ intern.id }}">{{ intern.middle_name }}</td>
-                        <td class="editable" data-field="phone_number" data-id="{{ intern.id }}">{{ intern.phone_number }}</td>
-                        <td class="editable" data-field="metro_station" data-id="{{ intern.id }}">{{ intern.metro_station }}</td>
-                        <td class="editable" data-field="organization" data-id="{{ intern.id }}">{{ intern.organization.full_name }}</td>
-                    </tr>
+        <!-- Поле поиска -->
+        <div class="mb-4">
+            <input type="text" id="searchInput" class="form-control"
+                   placeholder="Поиск по ФИО, телефону, метро или организации...">
+        </div>
+
+        <!-- Выпадающий список групп -->
+        <div class="mb-4">
+            <div class="dropdown">
+                <button class="btn btn-dark dropdown-toggle" type="button" id="dropdownMenuButton"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    Перейти к группе
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton"
+                    style="max-height: 300px; overflow-y: auto;">
+                    {% regroup interns|dictsort:"group.name" by group.name as intern_groups %}
+                    {% for group in intern_groups %}
+                        <li><a class="dropdown-item" href="#group-{{ group.grouper|slugify }}">{{ group.grouper }}</a>
+                        </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                </ul>
+            </div>
         </div>
+
+        <!-- Группировка студентов по группам -->
+        {% regroup interns|dictsort:"group.name" by group.name as intern_groups %}
+        {% for group in intern_groups %}
+            <div class="mb-5" id="group-{{ group.grouper|slugify }}">
+                <!-- Заголовок группы -->
+                <h2 class="mb-3" style="font-weight: 600; font-size: 1.8rem; color: #333;">
+                    {{ group.grouper }} <!-- Название группы -->
+                </h2>
+                <!-- Таблица с данными для текущей группы -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                        <tr>
+                            <th scope="col" class="text-center" style="width: 5%;">№</th>
+                            <th scope="col" style="width: 15%;">Фамилия</th>
+                            <th scope="col" style="width: 12%;">Имя</th>
+                            <th scope="col" style="width: 15%;">Отчество</th>
+                            <th scope="col" class="text-center" style="width: 12%;">Телефон</th>
+                            <th scope="col" class="text-center" style="width: 13%;">Email</th>
+                            <!-- Новый столбец для email -->
+                            <th scope="col" class="text-center" style="width: 10%;">Метро</th>
+                            <th scope="col" class="text-center" style="width: 18%;">Организация</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for intern in group.list|dictsort:"last_name" %}
+                            <tr {% if intern.is_modified %}class="modified-row"{% endif %}>
+                                <td class="text-center">{{ forloop.counter }}</td> <!-- Нумерация студентов в группе -->
+                                <td class="editable" data-field="last_name" data-id="{{ intern.id }}">
+                                    <a href="{% url 'intern_detail' intern.id %}">{{ intern.last_name|default:"-" }}</a></td>
+                                <td class="editable" data-field="first_name"
+                                    data-id="{{ intern.id }}">{{ intern.first_name|default:"-" }}</td>
+                                <td class="editable" data-field="middle_name"
+                                    data-id="{{ intern.id }}">{{ intern.middle_name|default:"-" }}</td>
+                                <td class="editable" data-field="phone_number"
+                                    data-id="{{ intern.id }}">{{ intern.phone_number|default:"-" }}</td>
+                                <td class="editable" data-field="email"
+                                    data-id="{{ intern.id }}">{{ intern.email|default:"-" }}</td>
+                                <td class="editable" data-field="metro_station"
+                                    data-id="{{ intern.id }}">{{ intern.metro_station|default:"-" }}</td>
+                                <td data-field="organization"
+                                    data-id="{{ intern.id }}">{{ intern.organization.full_name|default:"-" }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-center" style="font-size: 1.2rem; color: #666;">Нет данных о студентах.</p>
+        {% endfor %}
     </div>
-    {% empty %}
-    <p class="text-center" style="font-size: 1.2rem; color: #666;">Нет данных о студентах.</p>
-    {% endfor %}
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Добавляем функционал редактирования ячеек
-    document.querySelectorAll('.editable').forEach(function(element) {
-        element.addEventListener('dblclick', function() {
-            var id = this.getAttribute('data-id');
-            var field = this.getAttribute('data-field');
-            var value = this.innerText;
-            var input = document.createElement('input');
-            input.type = 'text';
-            input.value = value;
-            this.innerText = '';
-            this.appendChild(input);
-            input.focus();
-            input.addEventListener('blur', function() {
-                var newValue = this.value;
-                var parent = this.parentElement;
-                parent.innerText = newValue;
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.editable').forEach(function (element) {
+                // Проверяем, что поле не является атрибутом id или organization
+                const field = element.getAttribute('data-field');
+                if (field === 'id' || field === 'organization') {
+                    return; // Пропускаем эти поля
+                }
 
-                // Отправка данных на сервер
-                fetch(`/update_intern/${id}/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        field: field,
-                        value: newValue
-                    })
-                }).then(response => response.json())
-                  .then(data => {
-                      if (data.success) {
-                          console.log('Данные успешно обновлены');
-                          const internRow = parent.closest('tr');
-                          if (!internRow.classList.contains('modified-row')) {
-                              internRow.classList.add('modified-row');
-                          }
-                      } else {
-                          console.error('Ошибка при обновлении данных');
-                      }
-                  });
+                element.addEventListener('dblclick', function () {
+                    var id = this.getAttribute('data-id');
+                    var field = this.getAttribute('data-field');
+                    var value = this.innerText;
+                    var input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = value;
+                    this.innerText = '';
+                    this.appendChild(input);
+                    input.focus();
+                    input.addEventListener('blur', function () {
+                        var newValue = this.value;
+                        var parent = this.parentElement;
+                        parent.innerText = newValue;
+
+                        fetch(`/update_intern/${id}/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                field: field,
+                                value: newValue
+                            })
+                        }).then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log('Данные успешно обновлены');
+                                    const internRow = parent.closest('tr');
+                                    if (!internRow.classList.contains('modified-row')) {
+                                        internRow.classList.add('modified-row');
+                                    }
+                                } else {
+                                    console.error('Ошибка при обновлении данных');
+                                }
+                            });
+                    });
+                    // Завершение редактирования при нажатии Enter
+                    input.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            input.blur(); // Завершаем редактирование
+                        }
+                    });
+                });
             });
         });
-    });
 
-    // Добавляем функционал поиска
-    document.getElementById('searchInput').addEventListener('input', function() {
-        const filter = this.value.toLowerCase();
-        const rows = document.querySelectorAll('tbody tr');
+        // Добавляем функционал поиска
+        document.getElementById('searchInput').addEventListener('input', function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
 
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            let matchFound = false;
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                let matchFound = false;
 
-            cells.forEach(cell => {
-                if (cell.textContent.toLowerCase().includes(filter)) {
-                    matchFound = true;
+                cells.forEach(cell => {
+                    if (cell.textContent.toLowerCase().includes(filter)) {
+                        matchFound = true;
+                    }
+                });
+
+                if (matchFound) {
+                    row.style.display = ''; // Показываем строку
+                } else {
+                    row.style.display = 'none'; // Скрываем строку
                 }
             });
-
-            if (matchFound) {
-                row.style.display = ''; // Показываем строку
-            } else {
-                row.style.display = 'none'; // Скрываем строку
-            }
         });
-    });
-});
 
-</script>
+    </script>
 
-<style>
-
-</style>
+    <script>
+        function approveOrganization(organizationId) {
+            fetch(`/approve/organization/${organizationId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload(); // Перезагружаем страницу после подтверждения
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
+        }
+    </script>
 {% endblock %}

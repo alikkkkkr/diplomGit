@@ -1,92 +1,63 @@
 from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from settings_loader import *  # Загрузка настроек Django
-from doc.models import Intern, Group, Organization
-
-def fetch_students_by_groups(selected_groups):
-    """
-    Получает студентов по выбранным группам и группирует их по организациям.
-    """
-    interns = Intern.objects.filter(group__name__in=selected_groups).select_related('group', 'organization').all()
-
-    # Словарь для группировки студентов по организациям
-    grouped_data = {}
-    for intern in interns:
-        org_name = intern.organization.full_name if intern.organization else "Без организации"
-        if org_name not in grouped_data:
-            grouped_data[org_name] = []
-        grouped_data[org_name].append({
-            "student": f"{intern.last_name} {intern.first_name} {intern.middle_name or ''}",
-            "group": intern.group.name,
-            "college_supervisor": intern.college_supervisor.full_name if intern.college_supervisor else "",
-            "org_supervisor": intern.organization_supervisor.full_name if intern.organization_supervisor else ""
-        })
-
-    # Разделяем организации на обычные и связанные с техникумом
-    regular_organizations = {k: v for k, v in grouped_data.items() if "техникум" not in k.lower()}
-    tech_organizations = {k: v for k, v in grouped_data.items() if "техникум" in k.lower()}
-
-    return {**regular_organizations, **tech_organizations}  # Объединяем словари
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 
-def generate_docx(data, output_path):
-    """
-    Создает и сохраняет файл .docx на основе шаблона.
-    """
+def create_bases_practice_doc(output_path):
+    # Создаем новый документ
     doc = Document()
 
-    # Добавляем заголовок
+    # Добавляем заголовок "Приложение 1"
+    appendix = doc.add_paragraph()
+    appendix.add_run("Приложение 1").bold = True
+    appendix.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Добавляем заголовок "Базы производственной практики (по профилю специальности)"
     title = doc.add_paragraph()
+    title.add_run("Базы производственной практики (по профилю специальности)").bold = True
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title.add_run("Базы производственной практики")
-    run.font.size = Pt(16)
-    run.bold = True
 
-    # Добавляем подзаголовок
-    subtitle = doc.add_paragraph()
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = subtitle.add_run("(по профилю специальности)")
-    run.font.size = Pt(14)
+    # Добавляем текст с информацией о специальности и периоде проведения
+    info = doc.add_paragraph()
+    info.add_run("ПП.04.01 «Сопровождение и обслуживание программного обеспечения компьютерных систем» профессионального модуля ПМ.04 «Сопровождение и обслуживание программного обеспечения компьютерных систем» ")
+    info.add_run("Специальности 09.02.07 «Информационные системы и программирование», классификация: Программист").bold = True
+    info.add_run("\nГрупп: П50-1-21, П50-2-21, П50-3-21, П50-4-21, П50-5-21, П50-6-21, П50-7-21, П50-8-21, П50-9-21 период проведения: c 10.02.2025 по 12.04.2025")
 
-    # Добавляем основной контент
-    for org_name, students in data.items():
-        # Добавляем название организации
-        org_title = doc.add_paragraph(org_name, style="Heading 1")
+    # Добавляем таблицу
+    table = doc.add_table(rows=1, cols=6)
+    table.style = 'Table Grid'
 
-        # Добавляем таблицу для студентов
-        table = doc.add_table(rows=1, cols=5)
-        table.style = "Table Grid"
+    # Настройка ширины столбцов
+    for i, width in enumerate([0.5, 3, 3, 1.5, 2, 3]):
+        col = table.columns[i]
+        col.width = Pt(width * 72)  # Преобразуем дюймы в пункты (1 дюйм = 72 пункта)
 
-        # Заголовки таблицы
-        headers = ["ФИО студента", "Группа", "Руководитель от техникума", "Руководитель от организации", ""]
-        for i, header in enumerate(headers):
-            cell = table.cell(0, i)
-            cell.text = header
-            cell.paragraphs[0].runs[0].font.bold = True
+    # Заголовки таблицы
+    headers = ["№ п/п", "Наименование организации", "Ф.И.О. студента", "Группа", "Руководитель практической подготовки от техникума", "Руководитель практической подготовки от организации"]
+    for i, header in enumerate(headers):
+        cell = table.cell(0, i)
+        cell.text = header
+        cell.paragraphs[0].runs[0].bold = True
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # Добавляем данные студентов
-        for student in students:
-            row_cells = table.add_row().cells
-            row_cells[0].text = student["student"]
-            row_cells[1].text = student["group"]
-            row_cells[2].text = student["college_supervisor"]
-            row_cells[3].text = student["org_supervisor"]
+    # Пример данных для таблицы (замените на свои данные)
+    data = [
+        ["1", "ООО \"02 КЛАУД\"", "Астанин Илья Игоревич", "П50-1-21", "Соколова Л.А.", "Будкин Александр Владимирович"],
+        ["2", "АО \"Уральский завод гражданской авиации\"", "Брызгалов Михаил Игоревич", "П50-1-21", "Соколова Л.А.", "Кругликов Андрей Игоревич 8-925-727-03-41"],
+        # Добавьте остальные строки данных
+    ]
 
-        # Добавляем пустую строку между организациями
-        doc.add_paragraph()
+    # Заполнение таблицы данными
+    for row in data:
+        row_cells = table.add_row().cells
+        for i, cell_value in enumerate(row):
+            row_cells[i].text = cell_value
+            row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     # Сохраняем документ
     doc.save(output_path)
 
-
-def create_practice_bases(groups, output_file="practice_bases.docx"):
-    """
-    Основная функция для создания файла .docx.
-    """
-    try:
-        data = fetch_students_by_groups(groups)
-        generate_docx(data, output_file)
-        print(f"Файл успешно создан: {output_file}")
-    except Exception as e:
-        print(f"Ошибка при создании файла: {e}")
+# Пример вызова функции
+create_bases_practice_doc("Базы_практик_шаблон.docx")

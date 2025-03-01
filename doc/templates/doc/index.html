@@ -2,8 +2,6 @@
 
 {% block content %}
     <div class="container">
-        <h1>Главная страница</h1>
-
         <!-- Отображение для организаций -->
         {% if request.session.role == 'Организация' %}
             <div class="alert alert-success">
@@ -13,7 +11,7 @@
         {% endif %}
 
         <!-- Отображение для преподавателей -->
-        {% if request.session.role == 'Преподаватель' %}
+        {% if request.session.role == 'Руководитель практики' %}
             {% if pending_registrations_count > 0 %}
                 <div class="alert alert-info">
                     <p>
@@ -24,8 +22,5 @@
             {% else %}
             {% endif %}
         {% endif %}
-
-
-
     </div>
 {% endblock %}

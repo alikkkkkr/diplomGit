@@ -122,8 +122,23 @@ def upload_interns(request):
 
 
 def interns_list(request):
+    # Проверка авторизации
+    if not request.session.get('email'):
+        return redirect('authPage')
+
+    # Получение списка организаций, ожидающих подтверждения
+    organizations = Organization.objects.filter(is_registration_request=True, is_approved=False)
+
+    # Получение списка практикантов
     interns = Intern.objects.all()
-    return render(request, 'doc/interns_base.html', {'interns': interns})
+
+    # Формирование контекста
+    context = {
+        "organizations": organizations,
+        "interns": interns,
+    }
+
+    return render(request, 'doc/interns_base.html', context)
 
 
 def intern_detail(request, intern_id):
@@ -150,6 +165,10 @@ def update_intern(request, intern_id):
             field = data.get('field')
             value = data.get('value')
 
+            # Проверяем, что поле не является id или organization
+            if field in ['id', 'organization']:
+                return JsonResponse({'success': False, 'error': 'Редактирование этого поля запрещено.'})
+
             intern = Intern.objects.get(id=intern_id)
 
             if field == 'last_name':
@@ -160,11 +179,10 @@ def update_intern(request, intern_id):
                 intern.middle_name = value
             elif field == 'phone_number':
                 intern.phone_number = value
+            elif field == 'email':
+                intern.email = value
             elif field == 'metro_station':
                 intern.metro_station = value
-            elif field == 'organization':
-                organization, _ = Organization.objects.get_or_create(full_name=value)
-                intern.organization = organization
 
             intern.save()
             return JsonResponse({'success': True})
@@ -189,6 +207,9 @@ def request_resume_access(request, intern_id):
 
 # Главная страница
 def index(request):
+    if not request.session.get('email'):
+        return redirect('authPage')  # Перенаправляем на авторизацию, если пользователь не авторизован
+
     pending_registrations_count = Organization.objects.filter(is_registration_request=True, is_approved=False).count()
     context = {
         "pending_registrations_count": pending_registrations_count,
@@ -294,7 +315,7 @@ def register(request):
         form = UserRegisterForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user_role = Role.objects.get(name='Преподаватель')  # Предполагается, что роль "Пользователь" существует
+            user_role = Role.objects.get(name='Руководитель практики')  # Предполагается, что роль "Пользователь" существует
             user.role = user_role
             user.save()
 
@@ -319,20 +340,26 @@ def auth(request):
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
             try:
+                # Поиск пользователя по email
                 user = Account.objects.get(email=email)
+
+                # Проверка пароля
                 if check_password(password, user.password):
                     # Сохраняем данные пользователя в сессию
                     request.session['email'] = user.email
                     request.session['role'] = user.role.name
+                    request.session['user_surname'] = user.surname
+                    request.session['user_name'] = user.name
+                    request.session['user_patronymic'] = user.patronymic
                     request.session.modified = True
 
-                    # Определяем страницу для перенаправления в зависимости от роли
-                    if user.role.name == "Преподаватель" or user.role.name == "Организация":
+                    # Перенаправление в зависимости от роли
+                    if user.role.name == "Руководитель практики" or user.role.name == "Организация":
                         return redirect('indexPage')  # Перенаправление на главную страницу
                     elif user.role.name == "Администратор":
                         return redirect('admin_panel')  # Перенаправление на панель администратора
                     elif user.role.name == "Студент":
-                        return redirect('student_index')  # Перенаправление на страницу студента
+                        return redirect('useraccountPage')  # Перенаправление на страницу студента
                     else:
                         messages.error(request, 'Неизвестная роль пользователя.')
                         return redirect('auth')  # Возвращаем обратно на страницу авторизации
@@ -340,8 +367,11 @@ def auth(request):
                     messages.error(request, 'Неверный email или пароль.')
             except Account.DoesNotExist:
                 messages.error(request, 'Пользователь не найден.')
+        else:
+            messages.error(request, 'Некорректные данные в форме.')
     else:
         form = LoginForm()
+
     return render(request, 'doc/auth.html', {'form': form})
 
 
@@ -353,6 +383,10 @@ def admin_panel(request):
     supervisors = CollegeSupervisor.objects.all()
     specialties = Specialty.objects.all()
     org_supervisors = OrganizationSupervisor.objects.all()
+    roles = Role.objects.all()
+    tags = Tag.objects.all()
+    schedules = Schedule.objects.all()
+    practices = Practice.objects.all()
 
     # Фильтрация практикантов по группе
     selected_group = request.GET.get('group')
@@ -360,12 +394,16 @@ def admin_panel(request):
         interns = interns.filter(group_id=selected_group)
 
     # Пагинация для всех моделей
-    paginator_interns = Paginator(interns, 35)
+    paginator_interns = Paginator(interns, 30)
     paginator_groups = Paginator(groups, 20)
     paginator_organizations = Paginator(organizations, 20)
     paginator_supervisors = Paginator(supervisors, 20)
     paginator_specialties = Paginator(specialties, 20)
     paginator_org_supervisors = Paginator(org_supervisors, 20)
+    paginator_roles = Paginator(roles, 10)
+    paginator_tags = Paginator(tags, 10)
+    paginator_schedules = Paginator(schedules, 20)
+    paginator_practices = Paginator(practices, 20)
 
     page_number = request.GET.get('page')
     interns_page = paginator_interns.get_page(page_number)
@@ -374,6 +412,10 @@ def admin_panel(request):
     supervisors_page = paginator_supervisors.get_page(page_number)
     specialties_page = paginator_specialties.get_page(page_number)
     org_supervisors_page = paginator_org_supervisors.get_page(page_number)
+    roles_page = paginator_roles.get_page(page_number)
+    tags_page = paginator_tags.get_page(page_number)
+    schedules_page = paginator_schedules.get_page(page_number)
+    practices_page = paginator_practices.get_page(page_number)
 
     context = {
         'interns': interns_page,
@@ -382,6 +424,10 @@ def admin_panel(request):
         'supervisors': supervisors_page,
         'specialties': specialties_page,
         'org_supervisors': org_supervisors_page,
+        'roles': roles_page,
+        'tags': tags_page,
+        'schedules': schedules_page,
+        'practices': practices_page,
         'all_groups': groups,  # Для выпадающего списка групп
     }
     return render(request, 'doc/admin_panel.html', context)
@@ -447,6 +493,10 @@ def get_model_by_name(model_name):
         'college_supervisor': CollegeSupervisor,
         'specialty': Specialty,
         'org_supervisor': OrganizationSupervisor,
+        'role': Role,  # Добавлено
+        'tag': Tag,  # Добавлено
+        'schedule': Schedule,  # Добавлено
+        'practice': Practice,  # Добавлено
     }
     model_class = models_dict.get(model_name)
     if model_class is None:
@@ -462,6 +512,10 @@ def get_form_by_model_name(model_name, *args, **kwargs):
         'college_supervisor': CollegeSupervisorForm,
         'specialty': SpecialtyForm,
         'org_supervisor': OrganizationSupervisorForm,
+        'role': RoleForm,  # Добавлено
+        'tag': TagForm,  # Добавлено
+        'schedule': ScheduleForm,  # Добавлено
+        'practice': PracticeForm,  # Добавлено
     }
     form_class = forms_dict.get(model_name)
     if form_class is None:

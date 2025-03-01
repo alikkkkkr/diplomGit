@@ -55,7 +55,7 @@ class LoginForm(forms.Form):
 class InternForm(forms.ModelForm):
     class Meta:
         model = Intern
-        fields = ['last_name', 'first_name', 'middle_name', 'phone_number', 'metro_station', 'group',
+        fields = ['last_name', 'first_name', 'middle_name', 'phone_number', 'email', 'metro_station', 'group',
                   'college_supervisor', 'organization']
 
 
@@ -71,6 +71,18 @@ class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
         fields = ['name', 'specialty']
+
+
+class RoleForm(forms.ModelForm):
+    class Meta:
+        model = Role
+        fields = ['name']
+
+
+class TagForm(forms.ModelForm):
+    class Meta:
+        model = Tag
+        fields = ['name']
 
 
 # Форма для модели Schedule
@@ -202,3 +214,24 @@ DocumentLinksFormSet = inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+
+class StudentRegistrationForm(forms.ModelForm):
+    class Meta:
+        model = Intern
+        fields = ['email']  # Используем поле email из модели Intern
+
+    def save(self, commit=True):
+        intern = super().save(commit=False)
+        account = Account.objects.create(
+            email=intern.email,
+            surname=intern.last_name,
+            name=intern.first_name,
+            patronymic=intern.middle_name,
+            role=Role.objects.get(name='Студент')
+        )
+        account.generate_and_send_password()  # Генерация и отправка пароля
+        if commit:
+            intern.save()
+            Student.objects.create(account=account, is_intern=False)  # Создаем запись студента
+        return account

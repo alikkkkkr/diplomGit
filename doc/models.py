@@ -1,9 +1,10 @@
 import re
-import uuid
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 class Role(models.Model):
@@ -52,6 +53,23 @@ class Account(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    def generate_and_send_password(self):
+        # Генерация случайного пароля
+        random_password = get_random_string(length=10)
+        self.set_password(random_password)
+        self.save()
+
+        # Отправка письма с паролем
+        subject = 'Ваш пароль для входа на сайт'
+        message = f'Ваш пароль для входа: {random_password}'
+        send_mail(
+            subject,
+            message,
+            settings.EMAIL_HOST_USER,
+            [self.email],  # Используем email из модели Intern
+            fail_silently=False,
+        )
+
     def __str__(self):
         return f"{self.surname} {self.name}"
 
@@ -68,11 +86,13 @@ class Intern(models.Model):
     first_name = models.CharField(max_length=50, verbose_name="Имя")
     middle_name = models.CharField(max_length=50, blank=True, null=True, verbose_name="Отчество")
     phone_number = models.CharField(max_length=50, blank=True, null=True, verbose_name="Номер телефона")
+    email = models.EmailField(unique=True, blank=True, null=True, verbose_name="Электронная почта")
     metro_station = models.CharField(max_length=50, blank=True, null=True, verbose_name="Ближайшее метро")
-    group = models.ForeignKey('Group', on_delete=models.CASCADE, blank=True, null=True, verbose_name="Группа")
-    college_supervisor = models.ForeignKey('CollegeSupervisor', on_delete=models.CASCADE, blank=True, null=True,
+    group = models.ForeignKey('Group', on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Группа")
+    college_supervisor = models.ForeignKey('CollegeSupervisor', on_delete=models.SET_NULL, blank=True, null=True,
                                            verbose_name="Руководитель от техникума")
-    organization = models.ForeignKey('Organization', on_delete=models.CASCADE, blank=True, null=True, verbose_name="Организация")
+    organization = models.ForeignKey('Organization', on_delete=models.SET_NULL, blank=True, null=True,
+                                     verbose_name="Организация")
     tags = models.ManyToManyField(Tag, blank=True, verbose_name="Теги")
     resume = models.FileField(upload_to='resumes/', blank=True, null=True, verbose_name="Резюме")
     # resume_access_granted = models.BooleanField(default=False, verbose_name="Доступ к резюме")
@@ -84,16 +104,28 @@ class Intern(models.Model):
     # def clean(self):
     #     self.validate_phone_number()
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
     def request_resume_access(self):
         if not self.resume_access_granted:
             self.resume_access_granted = True
             self.save()
             return True
         return False
+
+    def save(self, *args, **kwargs):
+        # Если email был изменен или добавлен
+        if self.email and not self.pk:  # Проверяем, что это новый объект
+            # Создаем аккаунт для студента
+            account = Account.objects.create(
+                email=self.email,
+                surname=self.last_name,
+                name=self.first_name,
+                patronymic=self.middle_name,
+                role=Role.objects.get(name='Студент')
+            )
+            account.generate_and_send_password()  # Генерация и отправка пароля
+            Student.objects.create(account=account, is_intern=True)  # Создаем запись студента
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.last_name} {self.first_name} - {self.group.name}"
@@ -109,7 +141,7 @@ class Student(models.Model):
 
 class Group(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="Название группы")
-    specialty = models.ForeignKey('Specialty', on_delete=models.CASCADE, verbose_name="Специальность")
+    specialty = models.ForeignKey('Specialty', on_delete=models.PROTECT, verbose_name="Специальность")
 
     def __str__(self):
         return self.name
@@ -128,7 +160,7 @@ class Practice(models.Model):
     preddiplom = models.BooleanField(default=False, verbose_name="Преддипломная практика")
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, verbose_name="График практики")
     hours = models.PositiveIntegerField(verbose_name="Количество часов")
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, verbose_name="Группа")
+    group = models.ForeignKey(Group, on_delete=models.PROTECT, verbose_name="Группа")
 
     def validate_practice_types(self):
         if self.preddiplom and (self.pp or self.pm):

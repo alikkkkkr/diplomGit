@@ -2,7 +2,7 @@ from django.urls import path, re_path, include
 import doc.views as v
 
 urlpatterns = [
-    path('', v.index, name='indexPage'),
+    path('', v.interns_list, name='indexPage'),
 
     # Авторизация и регистрация
     path('auth/', v.auth, name='authPage'),
@@ -25,7 +25,7 @@ urlpatterns = [
     # Органиции
     path('organization_list/', v.organizations_list, name='organizations_list'),
 
-    # Преподаватель
+    # Руководитель практики
 
 
     # Администратор

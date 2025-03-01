@@ -1,18 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from ttkthemes import ThemedStyle
-
-import generate_docx
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from settings_loader import *  # Загрузка настроек Django
 from doc.models import Intern, Group, Organization  # Импортируйте нужные модели
-
-
-# сделать загрузку файла базы практик по группам
-# группировка по группам
-# мин макс врап текст таблица
-# просмотр данных студента?
-# парсинг данных?
-# круд?
 
 
 # Функция для получения списка студентов
@@ -80,10 +73,87 @@ def create_docx_file():
         return
 
     try:
-        generate_docx.create_practice_bases(selected_groups, output_path)
+        generate_docx(selected_groups, output_path)
         messagebox.showinfo("Успех", f"Файл успешно создан: {output_path}")
     except Exception as e:
         messagebox.showerror("Ошибка", f"Ошибка при создании файла: {e}")
+
+
+# Функция для генерации документа
+def generate_docx(selected_groups, output_path):
+    """
+    Создает и сохраняет файл .docx на основе шаблона.
+    """
+    doc = Document()
+
+    # Добавляем заголовок
+    title = doc.add_paragraph()
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title.add_run("Базы производственной практики")
+    run.font.size = Pt(16)
+    run.bold = True
+
+    # Добавляем подзаголовок
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = subtitle.add_run("(по профилю специальности)")
+    run.font.size = Pt(14)
+
+    # Получаем данные студентов по группам
+    interns = Intern.objects.filter(group__name__in=selected_groups).select_related('group', 'organization').all()
+
+    # Группируем студентов по организациям
+    grouped_data = {}
+    for intern in interns:
+        org_name = intern.organization.full_name if intern.organization else "Без организации"
+        if org_name not in grouped_data:
+            grouped_data[org_name] = []
+        grouped_data[org_name].append({
+            "student": f"{intern.last_name} {intern.first_name} {intern.middle_name or ''}",
+            "group": intern.group.name,
+            "college_supervisor": intern.college_supervisor.last_name if intern.college_supervisor else "",
+            "org_supervisor": intern.organization.phone_number if intern.organization else ""
+        })
+
+    # Разделяем организации на обычные и связанные с техникумом
+    regular_organizations = {k: v for k, v in grouped_data.items() if "техникум" not in k.lower()}
+    tech_organizations = {k: v for k, v in grouped_data.items() if "техникум" in k.lower()}
+
+    # Объединяем словари
+    grouped_data = {**regular_organizations, **tech_organizations}
+
+    # Добавляем основной контент
+    for org_name, students in grouped_data.items():
+        # Добавляем название организации
+        org_title = doc.add_paragraph(org_name)
+        org_title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        org_title.runs[0].font.bold = True
+
+        # Добавляем таблицу для студентов
+        table = doc.add_table(rows=1, cols=5)
+        table.style = "Table Grid"
+
+        # Заголовки таблицы
+        headers = ["№ п/п", "ФИО студента", "Группа", "Руководитель от техникума", "Руководитель от организации"]
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            cell.paragraphs[0].runs[0].font.bold = True
+
+        # Добавляем данные студентов
+        for idx, student in enumerate(students, start=1):
+            row_cells = table.add_row().cells
+            row_cells[0].text = str(idx)  # Номер по порядку
+            row_cells[1].text = student["student"]
+            row_cells[2].text = student["group"]
+            row_cells[3].text = student["college_supervisor"]
+            row_cells[4].text = student["org_supervisor"]
+
+        # Добавляем пустую строку между организациями
+        doc.add_paragraph()
+
+    # Сохраняем документ
+    doc.save(output_path)
 
 
 # Создание главного окна
@@ -124,6 +194,10 @@ upload_button.pack(side=tk.LEFT, padx=5)
 add_button = ttk.Button(button_frame, text="Добавить студента", style="TButton")
 add_button.pack(side=tk.LEFT, padx=5)
 
+# Кнопка для генерации файла
+generate_button = ttk.Button(button_frame, text="Создать файл .docx", command=create_docx_file, style="TButton")
+generate_button.pack(side=tk.LEFT, padx=5)
+
 # Поиск и фильтр
 filter_frame = ttk.Frame(root)
 filter_frame.pack(pady=10, padx=20, fill=tk.X)
@@ -155,11 +229,34 @@ table_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 columns = ("ID", "Фамилия", "Имя", "Отчество", "Телефон", "Метро", "Группа", "Организация")
 table = ttk.Treeview(table_frame, columns=columns, show="headings", height=20)
 
+# Настройка ширины столбцов
+table.column("ID", width=50, anchor=tk.CENTER)  # Уменьшаем ширину столбца ID
+table.column("Фамилия", width=150, anchor=tk.W)
+table.column("Имя", width=150, anchor=tk.W)
+table.column("Отчество", width=150, anchor=tk.W)
+table.column("Телефон", width=120, anchor=tk.CENTER)
+table.column("Метро", width=120, anchor=tk.CENTER)
+table.column("Группа", width=120, anchor=tk.CENTER)
+table.column("Организация", width=250, anchor=tk.W)
+
+# Заголовки таблицы
 for col in columns:
     table.heading(col, text=col)
-    table.column(col, width=150, anchor=tk.CENTER)
+
+
+# Привязка ширины таблицы к ширине окна
+def resize_table(event):
+    table_frame.update_idletasks()
+    table_width = table_frame.winfo_width()
+    table.column("#0", width=0, stretch=tk.NO)  # Скрываем первый столбец
+    for col in columns:
+        table.column(col, width=int(table_width / len(columns)), stretch=tk.YES)
+
 
 table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+# Привязка изменения размера окна к функции resize_table
+root.bind("<Configure>", resize_table)
 
 # Скроллбар
 scrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, command=table.yview)

@@ -28,6 +28,18 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.yandex.ru'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = 'eu.ruseva@yandex.ru'
+EMAIL_HOST_PASSWORD = 'xjkpockxdzwsrmcu'
+DEFAULT_FROM_EMAIL = 'eu.ruseva@yandex.ru'
+
+# DjangoSMPTYandexAlik
+# xjkpockxdzwsrmcu
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +60,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'doc.middleware.AuthRequiredMiddleware',
 ]
 
 ROOT_URLCONF = "DiplomProject.urls"
