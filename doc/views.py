@@ -9,6 +9,7 @@ from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.core.paginator import Paginator
+from docx import Document as DocxDocument
 
 
 def upload_interns(request):
@@ -126,11 +127,23 @@ def interns_list(request):
     if not request.session.get('email'):
         return redirect('authPage')
 
+    # Получение объекта пользователя на основе email из сессии
+    try:
+        user = Account.objects.get(email=request.session['email'])
+    except Account.DoesNotExist:
+        # Если пользователь не найден, перенаправляем на страницу авторизации
+        return redirect('authPage')
+
     # Получение списка организаций, ожидающих подтверждения
     organizations = Organization.objects.filter(is_registration_request=True, is_approved=False)
 
     # Получение списка практикантов
     interns = Intern.objects.all()
+
+    # Если пользователь - руководитель практики, фильтруем по управляемым группам
+    if user.role.name == 'Руководитель практики':
+        managed_groups = user.managed_groups.all()
+        interns = interns.filter(group__in=managed_groups)
 
     # Формирование контекста
     context = {
@@ -139,6 +152,22 @@ def interns_list(request):
     }
 
     return render(request, 'doc/interns_base.html', context)
+
+
+def organizer_index(request):
+    # Проверка авторизации
+    if not request.session.get('email'):
+        return redirect('authPage')
+
+    # Получение списка практикантов
+    interns = Intern.objects.all()
+
+    # Формирование контекста
+    context = {
+        "interns": interns,
+    }
+
+    return render(request, 'doc/organizer_index.html', context)
 
 
 def intern_detail(request, intern_id):
@@ -203,6 +232,177 @@ def request_resume_access(request, intern_id):
         except Intern.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Практикант не найден.'})
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+def documents_page(request):
+    if not request.session.get('email'):
+        return redirect('authPage')  # Перенаправляем на страницу авторизации, если пользователь не авторизован
+
+    documents = Document.objects.filter(uploaded_by__email=request.session.get('email'))
+    groups = Group.objects.all()
+    specialties = Specialty.objects.all()
+    return render(request, 'doc/documents.html', {'documents': documents, 'groups': groups, 'specialties': specialties})
+
+
+def upload_document_ajax(request):
+    if request.method == 'POST':
+        form = DocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            # Используем вашу модель Account вместо встроенного пользователя
+            document.uploaded_by = Account.objects.get(email=request.session.get('email'))
+            document.save()
+            form.save_m2m()
+            return JsonResponse({'success': True, 'message': 'Документ успешно загружен.'})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors})
+    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+def delete_document_ajax(request, document_id):
+    document = get_object_or_404(Document, id=document_id)
+    document.delete()
+    return JsonResponse({'success': True, 'message': 'Документ успешно удален.'})
+
+
+def get_groups(request):
+    specialty_id = request.GET.get('specialty_id')
+    if specialty_id:
+        groups = Group.objects.filter(specialty_id=specialty_id).values('id', 'name')
+        return JsonResponse({'groups': list(groups)})
+    return JsonResponse({'groups': []})
+
+
+def prakties(request):
+    # Получение данных для всех разделов
+    practices = Practice.objects.all().distinct()
+    schedules = Schedule.objects.all()
+    groups = Group.objects.all()
+    specialties = Specialty.objects.all()
+
+    # Если пользователь - руководитель практики, фильтруем по управляемым группам
+    user = Account.objects.get(email=request.session['email'])
+    if user.role.name == 'Руководитель практики':
+        managed_groups = user.managed_groups.all()
+        practices = practices.filter(groups__in=managed_groups)
+        groups = groups.filter(id__in=managed_groups)
+
+    context = {
+        'practices': practices,
+        'schedules': schedules,
+        'groups': groups,
+        'specialties': specialties,
+    }
+    return render(request, 'doc/prakties.html', context)
+
+
+def add_practice(request):
+    if request.method == 'POST':
+        form = PracticeForm(request.POST)
+        if form.is_valid():
+            practice = form.save(commit=False)  # Создаем объект, но не сохраняем в базу
+            practice.save()  # Сохраняем основную модель
+            form.save_m2m()  # Сохраняем связи ManyToMany
+            messages.success(request, 'Практика успешно добавлена.')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    return redirect('prakties')
+
+
+def add_schedule(request):
+    if request.method == 'POST':
+        form = ScheduleForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'График успешно добавлен.')
+        else:
+            messages.error(request, 'Ошибка при добавлении графика.')
+    return redirect('prakties')
+
+
+def edit_schedule(request, schedule_id):
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    if request.method == 'POST':
+        form = ScheduleForm(request.POST, instance=schedule)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'График успешно обновлен.')
+            return redirect('prakties')
+        else:
+            messages.error(request, 'Ошибка при обновлении графика.')
+    else:
+        form = ScheduleForm(instance=schedule)
+    return render(request, 'doc/edit_schedule.html', {'form': form, 'schedule': schedule})
+
+
+def delete_schedule(request, schedule_id):
+    schedule = get_object_or_404(Schedule, id=schedule_id)
+    if request.method == 'POST':
+        schedule.delete()
+        messages.success(request, 'График успешно удален.')
+        return redirect('prakties')
+    return render(request, 'doc/confirm_delete_schedule.html', {'schedule': schedule})
+
+
+def add_group(request):
+    if request.method == 'POST':
+        form = GroupForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Группа успешно добавлена.')
+        else:
+            messages.error(request, 'Ошибка при добавлении группы.')
+    return redirect('prakties')
+
+
+def edit_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    if request.method == 'POST':
+        form = GroupForm(request.POST, instance=group)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Группа успешно обновлена.')
+            return redirect('prakties')
+        else:
+            messages.error(request, 'Ошибка при обновлении группы.')
+    else:
+        form = GroupForm(instance=group)
+    return render(request, 'doc/edit_group.html', {'form': form, 'group': group})
+
+
+def delete_group(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    if request.method == 'POST':
+        group.delete()
+        messages.success(request, 'Группа успешно удалена.')
+        return redirect('prakties')
+    return render(request, 'doc/confirm_delete_group.html', {'group': group})
+
+
+def edit_practice(request, practice_id):
+    practice = get_object_or_404(Practice, id=practice_id)
+    if request.method == 'POST':
+        form = PracticeForm(request.POST, instance=practice)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Практика успешно обновлена.')
+            return redirect('prakties')
+        else:
+            messages.error(request, 'Ошибка при обновлении практики.')
+    else:
+        form = PracticeForm(instance=practice)
+    return render(request, 'doc/edit_practice.html', {'form': form, 'practice': practice})
+
+
+def delete_practice(request, practice_id):
+    practice = get_object_or_404(Practice, id=practice_id)
+    if request.method == 'POST':
+        practice.delete()
+        messages.success(request, 'Практика успешно удалена.')
+        return redirect('prakties')
+    return render(request, 'doc/confirm_delete_practice.html', {'practice': practice})
 
 
 # Главная страница
@@ -273,11 +473,27 @@ def organizations_list(request):
 def approve_organization(request, organization_id):
     if request.method == 'POST':
         organization = Organization.objects.get(id=organization_id)
-        organization.is_approved = True
-        organization.is_registration_request = False  # Снимаем флаг заявки на регистрацию
-        organization.save()
-        return JsonResponse(
-            {'success': True, 'message': f'Организация "{organization.full_name}" успешно подтверждена.'})
+
+        # Проверяем, что организация еще не подтверждена
+        if not organization.is_approved:
+            organization.is_approved = True
+            organization.is_registration_request = False  # Снимаем флаг заявки на регистрацию
+            organization.save()
+
+            # Создаем аккаунт для организации
+            if organization.email:  # Проверяем, что email организации указан
+                account = Account.objects.create(
+                    email=organization.email,
+                    surname=organization.full_name,  # Используем название организации как фамилию
+                    name="Organization",  # Имя можно задать как "Organization"
+                    role=Role.objects.get(name='Организация'),  # Предполагается, что роль "Организация" существует
+                    password=organization.password  # Используем пароль, заданный при регистрации
+                )
+
+            return JsonResponse(
+                {'success': True, 'message': f'Организация "{organization.full_name}" успешно подтверждена.'})
+        else:
+            return JsonResponse({'success': False, 'message': 'Организация уже подтверждена.'})
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
 
 
@@ -286,17 +502,108 @@ def student_index(request):
 
 
 # Вывод данных пользователя из сессии
-def useraccount(request):
-    if request.session.get('email'):
-        email = request.session['email']
-        try:
-            user = Account.objects.get(email=email)
-            return render(request, 'doc/account.html', {'user': user})
-        except Account.DoesNotExist:
-            messages.error(request, 'Пользователь не найден.')
-            return redirect('authPage')
-    else:
+def account(request):
+    if not request.session.get('email'):
         return redirect('authPage')
+
+    user = Account.objects.get(email=request.session.get('email'))
+    intern = Intern.objects.filter(email=user.email).first()
+
+    if intern:
+        documents = Document.objects.filter(groups=intern.group)
+    else:
+        documents = []
+
+    return render(request, 'doc/account.html', {'documents': documents})
+
+
+def fill_document_data(request, document_id):
+    if request.method == 'POST':
+        user = Account.objects.get(email=request.session.get('email'))
+        intern = Intern.objects.filter(email=user.email).first()
+
+        if intern:
+            document = Document.objects.get(id=document_id)
+            docx_file = DocxDocument(document.file.path)
+
+            # Заполняем данные в документе
+            for paragraph in docx_file.paragraphs:
+                if '{{ student_name }}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace('{{ student_name }}',
+                                                            f"{intern.last_name} {intern.first_name} {intern.middle_name}")
+                if '{{ organization_name }}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace('{{ organization_name }}',
+                                                            intern.organization.full_name if intern.organization else '')
+                if '{{ supervisor_name }}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace('{{ supervisor_name }}',
+                                                            intern.college_supervisor.last_name if intern.college_supervisor else '')
+
+            # Сохраняем измененный документ
+            new_file_path = f"media/filled_documents/{document.title}_filled.docx"
+            docx_file.save(new_file_path)
+
+            return JsonResponse({'success': True, 'message': 'Данные успешно заполнены.', 'file_url': new_file_path})
+        else:
+            return JsonResponse({'success': False, 'message': 'Студент не найден.'})
+    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+@csrf_exempt
+def send_password(request, intern_id):
+    if request.method == 'POST':
+        try:
+            logger.info(f"Attempting to send password for intern_id: {intern_id}")
+            intern = Intern.objects.get(id=intern_id)
+            if intern.email:
+                account = Account.objects.get(email=intern.email)
+                account.generate_and_send_password()
+                return JsonResponse({'success': True, 'message': 'Пароль успешно отправлен.'})
+            else:
+                return JsonResponse({'success': False, 'message': 'У студента не указан email.'})
+        except Intern.DoesNotExist:
+            logger.error(f"Intern with id {intern_id} does not exist.")
+            return JsonResponse({'success': False, 'message': 'Студент не найден.'})
+        except Account.DoesNotExist:
+            logger.error(f"Account for intern_id {intern_id} does not exist.")
+            return JsonResponse({'success': False, 'message': 'Аккаунт студента не найден.'})
+    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+@csrf_exempt
+def send_passwords_to_all_students(request):
+    if request.method == 'POST':
+        try:
+            students = Account.objects.filter(role__name='Студент', email_sent=False)
+            for student in students:
+                student.generate_and_send_password()
+            return JsonResponse({'success': True, 'message': 'Пароли успешно отправлены всем студентам.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+@csrf_exempt
+def change_password(request):
+    if request.method == 'POST':
+        if not request.session.get('email'):
+            return JsonResponse({'success': False, 'error': 'Пользователь не авторизован.'})
+
+        user = Account.objects.get(email=request.session['email'])
+        old_password = request.POST.get('old_password')
+        new_password = request.POST.get('new_password')
+        confirm_new_password = request.POST.get('confirm_new_password')
+
+        if not user.check_password(old_password):
+            return JsonResponse({'success': False, 'error': 'Старый пароль введен неверно.'})
+
+        if new_password != confirm_new_password:
+            return JsonResponse({'success': False, 'error': 'Новый пароль и подтверждение не совпадают.'})
+
+        user.set_password(new_password)
+        user.save()
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'Недопустимый метод запроса.'})
 
 
 # Реализация выхода из сессии пользователя
@@ -315,7 +622,8 @@ def register(request):
         form = UserRegisterForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user_role = Role.objects.get(name='Руководитель практики')  # Предполагается, что роль "Пользователь" существует
+            user_role = Role.objects.get(
+                name='Руководитель практики')  # Предполагается, что роль "Пользователь" существует
             user.role = user_role
             user.save()
 
@@ -344,8 +652,8 @@ def auth(request):
                 user = Account.objects.get(email=email)
 
                 # Проверка пароля
-                if check_password(password, user.password):
-                    # Сохраняем данные пользователя в сессию
+                if user.check_password(password):
+                    # Сохраняем данные пользователя в сессии
                     request.session['email'] = user.email
                     request.session['role'] = user.role.name
                     request.session['user_surname'] = user.surname
@@ -354,8 +662,10 @@ def auth(request):
                     request.session.modified = True
 
                     # Перенаправление в зависимости от роли
-                    if user.role.name == "Руководитель практики" or user.role.name == "Организация":
+                    if user.role.name == "Руководитель практики":
                         return redirect('indexPage')  # Перенаправление на главную страницу
+                    elif user.role.name == "Организация":
+                        return redirect('organizations_index')
                     elif user.role.name == "Администратор":
                         return redirect('admin_panel')  # Перенаправление на панель администратора
                     elif user.role.name == "Студент":
@@ -366,7 +676,7 @@ def auth(request):
                 else:
                     messages.error(request, 'Неверный email или пароль.')
             except Account.DoesNotExist:
-                messages.error(request, 'Пользователь не найден.')
+                messages.error(request, 'Пользователь с таким email не найден.')
         else:
             messages.error(request, 'Некорректные данные в форме.')
     else:
@@ -377,7 +687,8 @@ def auth(request):
 
 def admin_panel(request):
     # Получаем данные для всех моделей с пагинацией
-    interns = Intern.objects.all().order_by('last_name')  # Сортировка по фамилии
+    accounts = Account.objects.all().order_by('surname')  # Сортировка по фамилии
+    interns = Intern.objects.all().order_by('last_name')
     groups = Group.objects.all()
     organizations = Organization.objects.all()
     supervisors = CollegeSupervisor.objects.all()
@@ -388,12 +699,13 @@ def admin_panel(request):
     schedules = Schedule.objects.all()
     practices = Practice.objects.all()
 
-    # Фильтрация практикантов по группе
-    selected_group = request.GET.get('group')
-    if selected_group:
-        interns = interns.filter(group_id=selected_group)
+    # Фильтрация аккаунтов по роли
+    selected_role = request.GET.get('role')
+    if selected_role:
+        accounts = accounts.filter(role_id=selected_role)
 
     # Пагинация для всех моделей
+    paginator_accounts = Paginator(accounts, 30)
     paginator_interns = Paginator(interns, 30)
     paginator_groups = Paginator(groups, 20)
     paginator_organizations = Paginator(organizations, 20)
@@ -406,6 +718,7 @@ def admin_panel(request):
     paginator_practices = Paginator(practices, 20)
 
     page_number = request.GET.get('page')
+    accounts_page = paginator_accounts.get_page(page_number)
     interns_page = paginator_interns.get_page(page_number)
     groups_page = paginator_groups.get_page(page_number)
     organizations_page = paginator_organizations.get_page(page_number)
@@ -418,6 +731,7 @@ def admin_panel(request):
     practices_page = paginator_practices.get_page(page_number)
 
     context = {
+        'accounts': accounts_page,
         'interns': interns_page,
         'groups': groups_page,
         'organizations': organizations_page,
@@ -429,6 +743,7 @@ def admin_panel(request):
         'schedules': schedules_page,
         'practices': practices_page,
         'all_groups': groups,  # Для выпадающего списка групп
+        'all_roles': roles,  # Для выпадающего списка ролей
     }
     return render(request, 'doc/admin_panel.html', context)
 
@@ -486,6 +801,13 @@ def admin_delete(request, model_name, pk):
 
 # Вспомогательные функции
 def get_model_by_name(model_name):
+    """
+    Возвращает класс модели по её имени.
+
+    :param model_name: Имя модели (строка).
+    :return: Класс модели.
+    :raises ValueError: Если модель с таким именем не найдена.
+    """
     models_dict = {
         'intern': Intern,
         'group': Group,
@@ -493,10 +815,13 @@ def get_model_by_name(model_name):
         'college_supervisor': CollegeSupervisor,
         'specialty': Specialty,
         'org_supervisor': OrganizationSupervisor,
-        'role': Role,  # Добавлено
-        'tag': Tag,  # Добавлено
-        'schedule': Schedule,  # Добавлено
-        'practice': Practice,  # Добавлено
+        'role': Role,
+        'tag': Tag,
+        'schedule': Schedule,
+        'practice': Practice,
+        'account': Account,  # Добавлена модель Account
+        'document': Document,  # Добавлена модель Document
+        'student': Student,  # Добавлена модель Student
     }
     model_class = models_dict.get(model_name)
     if model_class is None:
@@ -505,6 +830,15 @@ def get_model_by_name(model_name):
 
 
 def get_form_by_model_name(model_name, *args, **kwargs):
+    """
+    Возвращает форму для модели по её имени.
+
+    :param model_name: Имя модели (строка).
+    :param args: Аргументы для передачи в форму.
+    :param kwargs: Ключевые аргументы для передачи в форму.
+    :return: Экземпляр формы.
+    :raises ValueError: Если форма для модели не найдена.
+    """
     forms_dict = {
         'intern': InternForm,
         'group': GroupForm,
@@ -512,10 +846,13 @@ def get_form_by_model_name(model_name, *args, **kwargs):
         'college_supervisor': CollegeSupervisorForm,
         'specialty': SpecialtyForm,
         'org_supervisor': OrganizationSupervisorForm,
-        'role': RoleForm,  # Добавлено
-        'tag': TagForm,  # Добавлено
-        'schedule': ScheduleForm,  # Добавлено
-        'practice': PracticeForm,  # Добавлено
+        'role': RoleForm,
+        'tag': TagForm,
+        'schedule': ScheduleForm,
+        'practice': PracticeForm,
+        'account': AccountForm,  # Добавлена форма AccountForm
+        'document': DocumentForm,  # Добавлена форма DocumentForm
+        'student': StudentForm,  # Добавлена форма StudentForm
     }
     form_class = forms_dict.get(model_name)
     if form_class is None:

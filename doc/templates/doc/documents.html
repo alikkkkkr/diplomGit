@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Управление документами</h2>
+    <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+        Загрузить новый документ
+    </button>
+
+    <!-- Модальное окно для загрузки документа -->
+    <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadDocumentModalLabel">Загрузка документа</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadDocumentForm" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_title" class="form-label">Название документа</label>
+                            <input type="text" class="form-control" id="id_title" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_file" class="form-label">Файл</label>
+                            <input type="file" class="form-control" id="id_file" name="file" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_specialty" class="form-label">Специальность</label>
+                            <select class="form-select" id="id_specialty" name="specialty" required>
+                                <option value="">Выберите специальность</option>
+                                {% for specialty in specialties %}
+                                    <option value="{{ specialty.id }}">{{ specialty.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_groups" class="form-label">Группы</label>
+                            <select class="form-select" id="id_groups" name="groups" multiple disabled>
+                                <!-- Группы будут загружены динамически -->
+                            </select>
+                            <button type="button" class="btn btn-secondary mt-2" onclick="selectAllGroups()">Выбрать все группы</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-dark" onclick="uploadDocument()">Загрузить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список документов -->
+    <div class="mt-4">
+        <h3>Документы</h3>
+        <div id="documentsList" style="overflow-y: auto; max-height: 400px;">
+            {% for document in documents %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ document.title }}</h5>
+                        <p class="card-text">
+                            Группы: {{ document.groups.all|join:", " }}<br>
+                            Специальности: {{ document.specialties.all|join:", " }}
+                        </p>
+                        <a href="{{ document.file.url }}" class="btn btn-primary">Скачать</a>
+                        <button type="button" class="btn btn-danger" onclick="deleteDocument({{ document.id }})">Удалить</button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для загрузки групп по выбранной специальности
+    document.getElementById('id_specialty').addEventListener('change', function() {
+        const specialtyId = this.value;
+        const groupsSelect = document.getElementById('id_groups');
+
+        if (specialtyId) {
+            fetch(`/get_groups/?specialty_id=${specialtyId}`)
+                .then(response => response.json())
+                .then(data => {
+                    groupsSelect.innerHTML = ''; // Очищаем список групп
+                    data.groups.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        groupsSelect.appendChild(option);
+                    });
+                    groupsSelect.disabled = false; // Активируем выбор групп
+                });
+        } else {
+            groupsSelect.innerHTML = ''; // Очищаем список групп, если специальность не выбрана
+            groupsSelect.disabled = true; // Деактивируем выбор групп
+        }
+    });
+
+    // Функция для выбора всех групп
+    function selectAllGroups() {
+        const groupsSelect = document.getElementById('id_groups');
+        Array.from(groupsSelect.options).forEach(option => option.selected = true);
+    }
+
+    // Функция для загрузки документа
+    function uploadDocument() {
+        const form = document.getElementById('uploadDocumentForm');
+        const formData = new FormData(form);
+
+        fetch("{% url 'upload_document_ajax' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload(); // Перезагружаем страницу для обновления списка
+            } else {
+                alert('Ошибка: ' + data.errors);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+        });
+    }
+
+    // Функция для удаления документа
+    function deleteDocument(documentId) {
+        if (confirm('Вы уверены, что хотите удалить этот документ?')) {
+            fetch(`/delete_document_ajax/${documentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Перезагружаем страницу для обновления списка
+                } else {
+                    alert('Ошибка: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+            });
+        }
+    }
+</script>
+{% endblock %}

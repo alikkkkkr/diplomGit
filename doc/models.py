@@ -1,10 +1,13 @@
 import re
+import logging
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Role(models.Model):
@@ -22,6 +25,18 @@ class DocumentLinks(models.Model):
         return self.document_link
 
 
+class Document(models.Model):
+    title = models.CharField(max_length=255, verbose_name="Название документа")
+    file = models.FileField(upload_to='documents/', verbose_name="Файл")
+    groups = models.ManyToManyField('Group', blank=True, verbose_name="Группы")
+    specialties = models.ManyToManyField('Specialty', blank=True, verbose_name="Специальности")
+    uploaded_by = models.ForeignKey('Account', on_delete=models.CASCADE, verbose_name="Загружено")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
+
+    def __str__(self):
+        return self.title
+
+
 class Account(models.Model):
     email = models.EmailField(unique=True, verbose_name="Электронная почта")
     password = models.CharField(max_length=255, verbose_name="Пароль")
@@ -29,6 +44,8 @@ class Account(models.Model):
     name = models.CharField(max_length=50, verbose_name="Имя")
     patronymic = models.CharField(max_length=50, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, on_delete=models.PROTECT, verbose_name='Роль')
+    email_sent = models.BooleanField(default=False, verbose_name="Письмо отправлено")
+    managed_groups = models.ManyToManyField('Group', blank=True, verbose_name="Управляемые группы")
 
     def set_password(self, raw_password):
         self.salt_password = get_random_string(length=16)
@@ -50,25 +67,48 @@ class Account(models.Model):
         self.validate_name()
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        if not self.password:  # Если пароль не задан, создаем временный
+            self.password = make_password('temporary_password')
         super().save(*args, **kwargs)
 
     def generate_and_send_password(self):
+        # Проверяем, было ли уже отправлено письмо
+        if self.email_sent:
+            logger.info(f"Письмо уже отправлено на {self.email}. Пропускаем.")
+            return
+
         # Генерация случайного пароля
         random_password = get_random_string(length=10)
         self.set_password(random_password)
+        self.email_sent = True  # Устанавливаем флаг, что письмо отправлено
         self.save()
 
         # Отправка письма с паролем
         subject = 'Ваш пароль для входа на сайт'
         message = f'Ваш пароль для входа: {random_password}'
-        send_mail(
-            subject,
-            message,
-            settings.EMAIL_HOST_USER,
-            [self.email],  # Используем email из модели Intern
-            fail_silently=False,
-        )
+        from_email = settings.EMAIL_HOST_USER
+        try:
+            send_mail(
+                subject,
+                message,
+                from_email,  # Указываем отправителя
+                [self.email],  # Получатель
+                fail_silently=False,
+            )
+            logger.info(f"Письмо с паролем отправлено на {self.email}")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке письма: {e}")
+            self.email_sent = False  # Если отправка не удалась, сбрасываем флаг
+            self.save()
+
+    @classmethod
+    def send_passwords_to_all_students(cls):
+        """
+        Метод для отправки паролей на все почты студентов, где email_sent=False.
+        """
+        students = cls.objects.filter(role__name='Студент', email_sent=False)
+        for student in students:
+            student.generate_and_send_password()
 
     def __str__(self):
         return f"{self.surname} {self.name}"
@@ -112,18 +152,40 @@ class Intern(models.Model):
         return False
 
     def save(self, *args, **kwargs):
+        # Если это существующий объект (редактирование)
+        if self.pk:
+            old_intern = Intern.objects.get(pk=self.pk)
+            # Если email был изменен
+            if old_intern.email != self.email:
+                # Удаляем старый аккаунт, если он существует
+                Account.objects.filter(email=old_intern.email).delete()
+
         # Если email был изменен или добавлен
-        if self.email and not self.pk:  # Проверяем, что это новый объект
-            # Создаем аккаунт для студента
-            account = Account.objects.create(
-                email=self.email,
-                surname=self.last_name,
-                name=self.first_name,
-                patronymic=self.middle_name,
-                role=Role.objects.get(name='Студент')
-            )
-            account.generate_and_send_password()  # Генерация и отправка пароля
-            Student.objects.create(account=account, is_intern=True)  # Создаем запись студента
+        if self.email:
+            if not self.pk:  # Проверяем, что это новый объект
+                # Создаем аккаунт для студента
+                account = Account.objects.create(
+                    email=self.email,
+                    surname=self.last_name,
+                    name=self.first_name,
+                    patronymic=self.middle_name,
+                    role=Role.objects.get(name='Студент'),
+                    password='temporary_password',  # Временный пароль
+                    email_sent=False  # Письмо еще не отправлено
+                )
+                account.generate_and_send_password()  # Генерация и отправка пароля
+                Student.objects.create(account=account, is_intern=True)  # Создаем запись студента
+            else:
+                # Если это существующий объект, проверяем, изменился ли email
+                old_intern = Intern.objects.get(pk=self.pk)
+                if old_intern.email != self.email:
+                    # Обновляем email в аккаунте
+                    account = Account.objects.filter(email=old_intern.email).first()
+                    if account:
+                        account.email = self.email
+                        account.email_sent = False  # Сбрасываем флаг, так как email изменился
+                        account.save()
+                        account.generate_and_send_password()  # Генерация и отправка нового пароля
 
         super().save(*args, **kwargs)
 
@@ -155,12 +217,12 @@ class Schedule(models.Model):
 
 
 class Practice(models.Model):
-    pp = models.CharField(max_length=100, verbose_name="Педагогическая практика", blank=True, null=True)
-    pm = models.CharField(max_length=100, verbose_name="Производственная практика", blank=True, null=True)
+    pp = models.CharField(max_length=100, verbose_name="Производственная практика", blank=True, null=True)
+    pm = models.CharField(max_length=100, verbose_name="Профессиональный модуль", blank=True, null=True)
     preddiplom = models.BooleanField(default=False, verbose_name="Преддипломная практика")
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, verbose_name="График практики")
     hours = models.PositiveIntegerField(verbose_name="Количество часов")
-    group = models.ForeignKey(Group, on_delete=models.PROTECT, verbose_name="Группа")
+    groups = models.ManyToManyField(Group, verbose_name="Группы")
 
     def validate_practice_types(self):
         if self.preddiplom and (self.pp or self.pm):
@@ -179,7 +241,7 @@ class Practice(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.pp} {self.preddiplom} for {self.group.name}"
+        return f"{self.pp} {self.preddiplom} for {self.groups.name}"
 
 
 class CollegeSupervisor(models.Model):

@@ -8,7 +8,7 @@ urlpatterns = [
     path('auth/', v.auth, name='authPage'),
     path('registration/', v.register, name='regPage'),
     path('logout/', v.logout_view, name='logoutPage'),
-    path('account/', v.useraccount, name='useraccountPage'),
+    path('account/', v.account, name='useraccountPage'),
     path('register/organization/', v.register_organization, name='register_organization'),
     path('approve/organization/<int:organization_id>/', v.approve_organization, name='approve_organization'),
     path("organization/login/", v.organization_login, name="organization_login"),
@@ -24,9 +24,26 @@ urlpatterns = [
 
     # Органиции
     path('organization_list/', v.organizations_list, name='organizations_list'),
+    path('organization_index/', v.organizer_index, name='organizations_index'),
 
     # Руководитель практики
+    path('documents_page/', v.documents_page, name='documents_page'),
+    path('upload_document_ajax/', v.upload_document_ajax, name='upload_document_ajax'),
+    path('delete_document_ajax/<int:document_id>/', v.delete_document_ajax, name='delete_document_ajax'),
+    path('get_groups/', v.get_groups, name='get_groups'),
+    path('prakties/', v.prakties, name='prakties'),  # Основная страница
 
+    path('add_practice/', v.add_practice, name='add_practice'),
+    path('edit_practice/<int:practice_id>/', v.edit_practice, name='edit_practice'),
+    path('delete_practice/<int:practice_id>/', v.delete_practice, name='delete_practice'),
+
+    path('add_schedule/', v.add_schedule, name='add_schedule'),
+    path('edit_schedule/<int:schedule_id>/', v.edit_schedule, name='edit_schedule'),
+    path('delete_schedule/<int:schedule_id>/', v.delete_schedule, name='delete_schedule'),
+
+    path('add_group/', v.add_group, name='add_group'),
+    path('edit_group/<int:group_id>/', v.edit_group, name='edit_group'),
+    path('delete_group/<int:group_id>/', v.delete_group, name='delete_group'),
 
     # Администратор
     path('adm/', v.admin_panel, name='admin_panel'),
@@ -36,4 +53,8 @@ urlpatterns = [
 
     # Студенты
     path('student_index/', v.student_index, name='student_index'),
+    path('change_password/', v.change_password, name='change_password'),
+    path('send_password/<int:intern_id>/', v.send_password, name='send_password'),
+    path('send-passwords-to-all-students/', v.send_passwords_to_all_students, name='send_passwords_to_all_students'),
+    path('fill_document_data/<int:document_id>/', v.fill_document_data, name='fill_document_data'),
 ]

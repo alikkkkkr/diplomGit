@@ -1,13 +1,19 @@
 {% extends 'base2.html' %}
 
 {% block content %}
-<div class="container">
-    <h2>Редактирование записи</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
-        <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Отмена</a>
-    </form>
-</div>
+    <div class="container">
+        <h2>Редактирование записи</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            {% if form.managed_groups %}
+                <div class="form-group">
+                    <label for="{{ form.managed_groups.id_for_label }}">Управляемые группы</label>
+                    {{ form.managed_groups }}
+                </div>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+            <a href="{% url 'admin_panel' %}" class="btn btn-secondary">Отмена</a>
+        </form>
+    </div>
 {% endblock %}

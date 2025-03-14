@@ -50,6 +50,50 @@ class LoginForm(forms.Form):
     email = forms.EmailField(label='Электронная почта')
     password = forms.CharField(label='Пароль', widget=forms.PasswordInput)
 
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get("email")
+        password = cleaned_data.get("password")
+
+        if email and password:
+            try:
+                user = Account.objects.get(email=email)
+                if not user.check_password(password):
+                    raise forms.ValidationError("Неверный email или пароль.")
+            except Account.DoesNotExist:
+                raise forms.ValidationError("Пользователь с таким email не найден.")
+        return cleaned_data
+
+
+class ChangePasswordForm(forms.Form):
+    old_password = forms.CharField(label="Старый пароль", widget=forms.PasswordInput)
+    new_password = forms.CharField(label="Новый пароль", widget=forms.PasswordInput)
+    confirm_new_password = forms.CharField(label="Подтвердите новый пароль", widget=forms.PasswordInput)
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        old_password = cleaned_data.get("old_password")
+        new_password = cleaned_data.get("new_password")
+        confirm_new_password = cleaned_data.get("confirm_new_password")
+
+        if not self.user.check_password(old_password):
+            raise ValidationError("Старый пароль введен неверно.")
+
+        if new_password != confirm_new_password:
+            raise ValidationError("Новый пароль и подтверждение не совпадают.")
+
+        return cleaned_data
+
+
+class DocumentForm(forms.ModelForm):
+    class Meta:
+        model = Document
+        fields = ['title', 'file', 'groups', 'specialties']
+
 
 # Форма для модели Intern
 class InternForm(forms.ModelForm):
@@ -57,6 +101,17 @@ class InternForm(forms.ModelForm):
         model = Intern
         fields = ['last_name', 'first_name', 'middle_name', 'phone_number', 'email', 'metro_station', 'group',
                   'college_supervisor', 'organization']
+
+
+class AccountForm(forms.ModelForm):
+    class Meta:
+        model = Account
+        fields = ['email', 'surname', 'name', 'patronymic', 'role', 'managed_groups']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.role.name != 'Руководитель практики':
+            self.fields['managed_groups'].widget = forms.HiddenInput()
 
 
 # Форма для модели Student
@@ -96,7 +151,24 @@ class ScheduleForm(forms.ModelForm):
 class PracticeForm(forms.ModelForm):
     class Meta:
         model = Practice
-        fields = ['pp', 'pm', 'preddiplom', 'schedule', 'hours', 'group']
+        fields = ['pp', 'pm', 'preddiplom', 'schedule', 'hours', 'groups']
+        widgets = {
+            'groups': forms.SelectMultiple(attrs={'class': 'form-control'}),  # Используем SelectMultiple
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        pp = cleaned_data.get("pp")
+        pm = cleaned_data.get("pm")
+        preddiplom = cleaned_data.get("preddiplom")
+
+        if preddiplom and (pp or pm):
+            raise forms.ValidationError("Невозможно установить преддипломную практику, если уже указаны ПП или ПМ.")
+
+        if not preddiplom and not pp and not pm:
+            raise forms.ValidationError("Необходимо заполнить либо ПП и ПМ, либо указать преддипломную практику.")
+
+        return cleaned_data
 
 
 # Форма для модели CollegeSupervisor

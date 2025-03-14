@@ -1,8 +1,6 @@
 <header>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <!-- Логотип и название -->
-            <a style="color: whitesmoke" class="navbar-brand">Doc Manager</a>
 
             <!-- Кнопка для мобильной версии -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -12,33 +10,42 @@
             <!-- Содержимое навигации -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">  <!-- me-auto выравнивает левую часть -->
-{#                    <li class="nav-item">#}
-{#                        <a class="nav-link active" aria-current="page" href="{% url 'useraccountPage' %}">Аккаунт</a>#}
-{#                    </li>#}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'interns_list' %}">База практикантов</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">Документы</a>
-                    </li>
+                    {% if request.session.role != "Организация" %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'interns_list' %}">База практикантов</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'documents_page' %}">Документы</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'prakties' %}">Практики</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'interns_list' %}">База практикантов</a>
+                        </li>
+                    {% endif %}
                 </ul>
 
                 <!-- Правая часть: почта и кнопка выхода -->
                 <ul class="navbar-nav ms-auto">  <!-- ms-auto выравнивает правую часть -->
                     {% if request.session.email %}
-                    <li class="nav-item">
-                        <a style="color: #9f9f9f" class="nav-link">{{ request.session.role }}</a>
-                    </li>
-                    <li class="nav-item">
-                        <a style="color: whitesmoke" class="nav-link">{{ request.session.email }}</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn" href="{% url 'logoutPage' %}">Выйти</a>
-                    </li>
+                        <li class="nav-item">
+                            <a style="color: #9f9f9f" class="nav-link">{{ request.session.role }}</a>
+                        </li>
+                        <li class="nav-item">
+                            <a style="color: whitesmoke" class="nav-link">{{ request.session.user_surname }}</a>
+                        </li>
+                        <li class="nav-item">
+                            <u><a style="color: whitesmoke" class="nav-link">{{ request.session.email }}</a></u>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn" href="{% url 'logoutPage' %}">Выйти</a>
+                        </li>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-primary text-white" href="{% url 'authPage' %}">Войти</a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary text-white" href="{% url 'authPage' %}">Войти</a>
+                        </li>
                     {% endif %}
                 </ul>
             </div>

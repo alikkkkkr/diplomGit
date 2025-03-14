@@ -92,7 +92,8 @@
                             <tr {% if intern.is_modified %}class="modified-row"{% endif %}>
                                 <td class="text-center">{{ forloop.counter }}</td> <!-- Нумерация студентов в группе -->
                                 <td class="editable" data-field="last_name" data-id="{{ intern.id }}">
-                                    <a href="{% url 'intern_detail' intern.id %}">{{ intern.last_name|default:"-" }}</a></td>
+                                    <a href="{% url 'intern_detail' intern.id %}">{{ intern.last_name|default:"-" }}</a>
+                                </td>
                                 <td class="editable" data-field="first_name"
                                     data-id="{{ intern.id }}">{{ intern.first_name|default:"-" }}</td>
                                 <td class="editable" data-field="middle_name"
@@ -114,7 +115,82 @@
         {% empty %}
             <p class="text-center" style="font-size: 1.2rem; color: #666;">Нет данных о студентах.</p>
         {% endfor %}
+
+        <!-- Кнопка для отправки паролей -->
+        <div class="row mt-4">
+            <div class="col-md-12 text-left">
+                <button id="send-passwords-btn" class="btn btn-dark">Отправить студентам пароль на почту</button>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        document.getElementById('send-passwords-btn').addEventListener('click', function () {
+            fetch("{% url 'send_passwords_to_all_students' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Пароли успешно отправлены всем студентам.');
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
+        });
+    </script>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function sendPassword(internId) {
+            const csrfToken = getCookie('csrftoken'); // Извлекаем CSRF-токен из cookies
+            if (!internId) {
+                alert('Ошибка: ID студента не определен.');
+                return;
+            }
+
+            fetch(`/send_password/${internId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // Передаем CSRF-токен в заголовке
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Пароль успешно отправлен на email студента.');
+                    } else {
+                        alert('Ошибка: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                });
+        }
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {

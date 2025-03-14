@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h2>Управление практиками, графиками и группами</h2>
+
+        <!-- Навигационные вкладки -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#practices">Практики</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#schedules">Графики</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#groups">Группы</a>
+            </li>
+        </ul>
+
+        <!-- Содержимое вкладок -->
+        <div class="tab-content">
+            <!-- Вкладка "Практики" -->
+            <div class="tab-pane fade show active" id="practices">
+                <h3>Добавить новую практику</h3>
+                <form method="post" action="{% url 'add_practice' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_pp">Производственная практика</label>
+                        <input type="text" name="pp" id="id_pp" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_pm">Профессиональный модуль</label>
+                        <input type="text" name="pm" id="id_pm" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_preddiplom">Преддипломная практика</label>
+                        <input type="checkbox" name="preddiplom" id="id_preddiplom" class="form-check-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_schedule">График практики</label>
+                        <select name="schedule" id="id_schedule" class="form-control">
+                            {% for schedule in schedules %}
+                                <option value="{{ schedule.id }}">{{ schedule.schedule_description }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_hours">Количество часов</label>
+                        <input type="number" name="hours" id="id_hours" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_groups">Группы</label>
+                        <select name="groups" id="id_groups" class="form-control" multiple>
+                            {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-dark">Добавить практику</button>
+                </form>
+
+                <h3 class="mt-4">Список практик</h3>
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Тип практики</th>
+                        <th>График</th>
+                        <th>Часы</th>
+                        <th>Группа</th>
+                        <th>Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for practice in practices %}
+                        <tr>
+                            <td>
+                                {% if practice.pp %}
+                                    {{ practice.pp }}
+                                {% elif practice.pm %}
+                                    {{ practice.pm }}
+                                {% elif practice.preddiplom %}
+                                    Преддипломная
+                                {% endif %}
+                            </td>
+                            <td>{{ practice.schedule.schedule_description }}</td>
+                            <td>{{ practice.hours }}</td>
+                            <td>
+                                {% for group in practice.groups.all %}
+                                    {{ group.name }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{% url 'edit_practice' practice.id %}" class="btn btn-dark btn-sm">Редактировать</a>
+                                <a href="{% url 'delete_practice' practice.id %}"
+                                   class="btn btn-danger btn-sm">Удалить</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Вкладка "Графики" -->
+            <div class="tab-pane fade" id="schedules">
+                <h3>Добавить новый график</h3>
+                <form method="post" action="{% url 'add_schedule' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_schedule_description">Описание графика</label>
+                        <input type="text" name="schedule_description" id="id_schedule_description"
+                               class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-dark">Добавить график</button>
+                </form>
+
+                <h3 class="mt-4">Список графиков</h3>
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Описание графика</th>
+                        <th>Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for schedule in schedules %}
+                        <tr>
+                            <td>{{ schedule.schedule_description }}</td>
+                            <td>
+                                <a href="{% url 'edit_schedule' schedule.id %}" class="btn btn-dark btn-sm">Редактировать</a>
+                                <a href="{% url 'delete_schedule' schedule.id %}"
+                                   class="btn btn-danger btn-sm">Удалить</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Вкладка "Группы" -->
+            <div class="tab-pane fade" id="groups">
+                <h3>Добавить новую группу</h3>
+                <form method="post" action="{% url 'add_group' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_name">Название группы</label>
+                        <input type="text" name="name" id="id_name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_specialty">Специальность</label>
+                        <select name="specialty" id="id_specialty" class="form-control">
+                            {% for specialty in specialties %}
+                                <option value="{{ specialty.id }}">{{ specialty.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-dark">Добавить группу</button>
+                </form>
+
+                <h3 class="mt-4">Список групп</h3>
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>Название группы</th>
+                        <th>Специальность</th>
+                        <th>Действия</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for group in groups %}
+                        <tr>
+                            <td>{{ group.name }}</td>
+                            <td>{{ group.specialty.name }}</td>
+                            <td>
+                                <a href="{% url 'edit_group' group.id %}" class="btn btn-dark btn-sm">Редактировать</a>
+                                <a href="{% url 'delete_group' group.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

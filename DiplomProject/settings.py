@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import certifi
+import os
+
+os.environ['SSL_CERT_FILE'] = certifi.where()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -34,7 +38,7 @@ EMAIL_PORT = 465
 EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'eu.ruseva@yandex.ru'
 EMAIL_HOST_PASSWORD = 'xjkpockxdzwsrmcu'
-DEFAULT_FROM_EMAIL = 'eu.ruseva@yandex.ru'
+DEFAULT_FROM_EMAIL = 'DocManager'
 
 # DjangoSMPTYandexAlik
 # xjkpockxdzwsrmcu
@@ -61,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     'doc.middleware.AuthRequiredMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
 ]
 
 ROOT_URLCONF = "DiplomProject.urls"
