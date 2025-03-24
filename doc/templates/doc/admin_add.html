@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container">
     <h2>Добавление записи</h2>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% for field_data in form_fields %}
             <div class="mb-3">
@@ -13,7 +13,7 @@
                 {% if field_data.related_model_name %}
                     <!-- Кнопка для добавления нового элемента в связанной модели -->
                     <a href="{% url 'admin_add' field_data.related_model_name %}"
-                       class="btn btn-sm btn-outline-success ms-2" target="_blank">Добавить новый</a>
+                       class="btn btn-sm btn-outline-success ms-2" target="_blank">Добавить</a>
                 {% endif %}
 
                 {% if field_data.field.errors %}

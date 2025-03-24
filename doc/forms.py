@@ -92,7 +92,7 @@ class ChangePasswordForm(forms.Form):
 class DocumentForm(forms.ModelForm):
     class Meta:
         model = Document
-        fields = ['title', 'file', 'groups', 'specialties']
+        fields = ['title', 'file', 'practice']
 
 
 # Форма для модели Intern

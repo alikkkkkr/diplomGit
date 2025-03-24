@@ -28,8 +28,7 @@ class DocumentLinks(models.Model):
 class Document(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название документа")
     file = models.FileField(upload_to='documents/', verbose_name="Файл")
-    groups = models.ManyToManyField('Group', blank=True, verbose_name="Группы")
-    specialties = models.ManyToManyField('Specialty', blank=True, verbose_name="Специальности")
+    practice = models.ForeignKey('Practice', on_delete=models.CASCADE, verbose_name="Практика", null=True, blank=True)
     uploaded_by = models.ForeignKey('Account', on_delete=models.CASCADE, verbose_name="Загружено")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
 
@@ -45,7 +44,7 @@ class Account(models.Model):
     patronymic = models.CharField(max_length=50, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, on_delete=models.PROTECT, verbose_name='Роль')
     email_sent = models.BooleanField(default=False, verbose_name="Письмо отправлено")
-    managed_groups = models.ManyToManyField('Group', blank=True, verbose_name="Управляемые группы")
+    managed_groups = models.ManyToManyField('Group', null=True, blank=True, verbose_name="Управляемые группы")
 
     def set_password(self, raw_password):
         self.salt_password = get_random_string(length=16)
@@ -72,18 +71,15 @@ class Account(models.Model):
         super().save(*args, **kwargs)
 
     def generate_and_send_password(self):
-        # Проверяем, было ли уже отправлено письмо
         if self.email_sent:
             logger.info(f"Письмо уже отправлено на {self.email}. Пропускаем.")
             return
 
-        # Генерация случайного пароля
         random_password = get_random_string(length=10)
         self.set_password(random_password)
-        self.email_sent = True  # Устанавливаем флаг, что письмо отправлено
+        self.email_sent = True
         self.save()
 
-        # Отправка письма с паролем
         subject = 'Ваш пароль для входа на сайт'
         message = f'Ваш пароль для входа: {random_password}'
         from_email = settings.EMAIL_HOST_USER

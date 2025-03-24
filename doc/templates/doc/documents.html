@@ -27,20 +27,13 @@
                             <input type="file" class="form-control" id="id_file" name="file" required>
                         </div>
                         <div class="mb-3">
-                            <label for="id_specialty" class="form-label">Специальность</label>
-                            <select class="form-select" id="id_specialty" name="specialty" required>
-                                <option value="">Выберите специальность</option>
-                                {% for specialty in specialties %}
-                                    <option value="{{ specialty.id }}">{{ specialty.name }}</option>
+                            <label for="id_practice" class="form-label">Практика</label>
+                            <select class="form-select" id="id_practice" name="practice" required>
+                                <option value="">Выберите практику</option>
+                                {% for practice in practices %}
+                                    <option value="{{ practice.id }}">{{ practice.pp }} {{ practice.pm }} {{ practice.preddiplom }}</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="id_groups" class="form-label">Группы</label>
-                            <select class="form-select" id="id_groups" name="groups" multiple disabled>
-                                <!-- Группы будут загружены динамически -->
-                            </select>
-                            <button type="button" class="btn btn-secondary mt-2" onclick="selectAllGroups()">Выбрать все группы</button>
                         </div>
                     </form>
                 </div>
@@ -61,8 +54,8 @@
                     <div class="card-body">
                         <h5 class="card-title">{{ document.title }}</h5>
                         <p class="card-text">
-                            Группы: {{ document.groups.all|join:", " }}<br>
-                            Специальности: {{ document.specialties.all|join:", " }}
+                            Практика: {{ document.practice.pp }} {{ document.practice.preddiplom }}<br>
+                            Группы: {{ document.practice.groups.all|join:", " }}
                         </p>
                         <a href="{{ document.file.url }}" class="btn btn-primary">Скачать</a>
                         <button type="button" class="btn btn-danger" onclick="deleteDocument({{ document.id }})">Удалить</button>
@@ -74,36 +67,6 @@
 </div>
 
 <script>
-    // Функция для загрузки групп по выбранной специальности
-    document.getElementById('id_specialty').addEventListener('change', function() {
-        const specialtyId = this.value;
-        const groupsSelect = document.getElementById('id_groups');
-
-        if (specialtyId) {
-            fetch(`/get_groups/?specialty_id=${specialtyId}`)
-                .then(response => response.json())
-                .then(data => {
-                    groupsSelect.innerHTML = ''; // Очищаем список групп
-                    data.groups.forEach(group => {
-                        const option = document.createElement('option');
-                        option.value = group.id;
-                        option.textContent = group.name;
-                        groupsSelect.appendChild(option);
-                    });
-                    groupsSelect.disabled = false; // Активируем выбор групп
-                });
-        } else {
-            groupsSelect.innerHTML = ''; // Очищаем список групп, если специальность не выбрана
-            groupsSelect.disabled = true; // Деактивируем выбор групп
-        }
-    });
-
-    // Функция для выбора всех групп
-    function selectAllGroups() {
-        const groupsSelect = document.getElementById('id_groups');
-        Array.from(groupsSelect.options).forEach(option => option.selected = true);
-    }
-
     // Функция для загрузки документа
     function uploadDocument() {
         const form = document.getElementById('uploadDocumentForm');

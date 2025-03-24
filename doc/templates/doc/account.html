@@ -191,13 +191,14 @@
                     <button onclick="openModal()" type="submit" style="margin-bottom: 20px">Изменить пароль</button>
                 </div>
 
-                <!-- Кнопка выхода -->
-                <div class="logout-btn">
+            </div>
+
+            <!-- Кнопка выхода -->
+                <div class="logout-btn" style="margin-top: 5%">
                     <a href="{% url 'logoutPage' %}">
                         <button type="submit">Выйти</button>
                     </a>
                 </div>
-            </div>
 
             <!-- Список документов -->
             <div class="documents-list">
@@ -233,7 +234,8 @@
                     </div>
                     <div class="form-group">
                         <label for="confirm_new_password">Подтвердите новый пароль</label>
-                        <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required>
+                        <input type="password" id="confirm_new_password" name="confirm_new_password"
+                               class="form-control" required>
                     </div>
                 </form>
             </div>
@@ -243,6 +245,40 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function fillDocumentData(documentId) {
+            fetch(`/fill_document_data/${documentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();  // Получаем файл как Blob
+                    } else {
+                        throw new Error('Ошибка при заполнении данных.');
+                    }
+                })
+                .then(blob => {
+                    // Создаем ссылку для скачивания файла
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `filled_document_${documentId}.docx`;  // Имя файла для скачивания
+                    document.body.appendChild(a);
+                    a.click();  // Автоматически нажимаем на ссылку
+                    window.URL.revokeObjectURL(url);  // Освобождаем память
+                    document.body.removeChild(a);  // Удаляем ссылку из DOM
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка при заполнении данных.');
+                });
+        }
+    </script>
 
     <script>
         // Функции для управления модальным окном
@@ -266,42 +302,19 @@
                     'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
                 },
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Пароль успешно изменен.');
-                    closeModal();
-                } else {
-                    alert(data.error || 'Ошибка при изменении пароля.');
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                alert('Произошла ошибка при отправке запроса.');
-            });
-        }
-
-        // Функция для заполнения данных документа
-        function fillDocumentData(documentId) {
-            fetch(`/fill_document_data/${documentId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Данные успешно заполнены.');
-                } else {
-                    alert('Ошибка при заполнении данных.');
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                alert('Произошла ошибка при отправке запроса.');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Пароль успешно изменен.');
+                        closeModal();
+                    } else {
+                        alert(data.error || 'Ошибка при изменении пароля.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка при отправке запроса.');
+                });
         }
     </script>
 {% endblock %}
