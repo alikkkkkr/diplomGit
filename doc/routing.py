@@ -56,5 +56,6 @@ urlpatterns = [
     path('change_password/', v.change_password, name='change_password'),
     path('send_password/<int:intern_id>/', v.send_password, name='send_password'),
     path('send-passwords-to-all-students/', v.send_passwords_to_all_students, name='send_passwords_to_all_students'),
-    path('fill_document_data/<int:document_id>/', v.fill_document_data, name='fill_document_data'),
+    # path('fill_document_data/<int:document_id>/', v.fill_document_data, name='fill_document_data'),
+    path('documents/<int:document_id>/download/', v.download_filled_document, name='download_filled_document'),
 ]

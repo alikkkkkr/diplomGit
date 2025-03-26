@@ -260,39 +260,211 @@ def upload_document_ajax(request):
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
 
 
-def fill_document_data(request, document_id):
-    if request.method == 'POST':
-        user = Account.objects.get(email=request.session.get('email'))
-        intern = Intern.objects.filter(email=user.email).first()
+# def fill_document_data(request, document_id):
+#     if request.method != 'POST':
+#         return JsonResponse({'success': False, 'message': 'Метод не разрешен'})
+#
+#     try:
+#         # Получаем текущего пользователя и практиканта
+#         user = Account.objects.get(email=request.session.get('email'))
+#         intern = Intern.objects.get(email=user.email)
+#         document = Document.objects.get(id=document_id)
+#
+#         # Открываем документ
+#         doc = DocxDocument(document.file.path)
+#
+#         # Получаем все возможные данные
+#         def get_data():
+#             data = {
+#                 # Данные студента
+#                 'student_full_name': f"{intern.last_name} {intern.first_name} {intern.middle_name or ''}".strip(),
+#                 'student_last_name': intern.last_name,
+#                 'student_first_name': intern.first_name,
+#                 'student_middle_name': intern.middle_name or '',
+#                 'student_phone': intern.phone_number or '',
+#                 'student_email': intern.email or '',
+#                 'student_metro': intern.metro_station or '',
+#                 'student_group': intern.group.name if intern.group else '',
+#
+#                 # Данные организации
+#                 'org_name': intern.organization.full_name if intern.organization else '',
+#                 'org_legal_address': intern.organization.legal_address if intern.organization else '',
+#                 'org_actual_address': intern.organization.actual_address if intern.organization else '',
+#                 'org_inn': intern.organization.inn if intern.organization else '',
+#                 'org_kpp': intern.organization.kpp if intern.organization else '',
+#                 'org_ogrn': intern.organization.ogrn if intern.organization else '',
+#                 'org_phone': intern.organization.phone_number if intern.organization else '',
+#                 'org_email': intern.organization.email if intern.organization else '',
+#
+#                 # Руководитель от организации
+#                 'org_supervisor_name': '',
+#                 'org_supervisor_phone': '',
+#                 'org_supervisor_position': '',
+#
+#                 # Руководитель от колледжа
+#                 'college_supervisor_name': '',
+#                 'college_supervisor_email': '',
+#                 'college_supervisor_position': '',
+#
+#                 # Данные практики
+#                 'practice_type': '',
+#                 'practice_hours': '',
+#                 'practice_schedule': ''
+#             }
+#
+#             # Заполняем данные руководителей, если они есть
+#             if hasattr(intern.organization, 'organizationsupervisor'):
+#                 sup = intern.organization.organizationsupervisor
+#                 data.update({
+#                     'org_supervisor_name': f"{sup.last_name} {sup.first_name} {sup.middle_name or ''}".strip(),
+#                     'org_supervisor_phone': sup.phone_number or '',
+#                     'org_supervisor_position': sup.position or ''
+#                 })
+#
+#             if intern.college_supervisor:
+#                 sup = intern.college_supervisor
+#                 data.update({
+#                     'college_supervisor_name': f"{sup.last_name} {sup.first_name} {sup.middle_name or ''}".strip(),
+#                     'college_supervisor_email': sup.email or '',
+#                     'college_supervisor_position': sup.position or ''
+#                 })
+#
+#             # Данные практики
+#             if document.practice:
+#                 practice = document.practice
+#                 practice_type = practice.pp or practice.pm or ('Преддипломная' if practice.preddiplom else '')
+#                 data.update({
+#                     'practice_type': practice_type,
+#                     'practice_hours': str(practice.hours) if practice.hours else '',
+#                     'practice_schedule': practice.schedule.schedule_description if practice.schedule else ''
+#                 })
+#
+#             return data
+#
+#         # Получаем все данные
+#         all_data = get_data()
+#
+#         # Функция для замены текста с сохранением форматирования
+#         def replace_text(doc_element, pattern, replacement):
+#             if pattern in doc_element.text:
+#                 inline = doc_element.runs
+#                 for i in range(len(inline)):
+#                     if pattern in inline[i].text:
+#                         text = inline[i].text.replace(pattern, replacement)
+#                         inline[i].text = text
+#
+#         # Обрабатываем весь документ
+#         for pattern, replacement in all_data.items():
+#             full_pattern = f'{{{{{pattern}}}}}'  # Шаблон в виде {{field_name}}
+#
+#             # Обрабатываем параграфы
+#             for paragraph in doc.paragraphs:
+#                 replace_text(paragraph, full_pattern, replacement)
+#
+#             # Обрабатываем таблицы
+#             for table in doc.tables:
+#                 for row in table.rows:
+#                     for cell in row.cells:
+#                         for paragraph in cell.paragraphs:
+#                             replace_text(paragraph, full_pattern, replacement)
+#
+#         # Сохраняем в памяти
+#         buffer = BytesIO()
+#         doc.save(buffer)
+#         buffer.seek(0)
+#
+#         # Отправляем файл
+#         response = FileResponse(
+#             buffer,
+#             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+#             as_attachment=True,
+#             filename=f"filled_{document.title}.docx"
+#         )
+#         return response
+#
+#     except Intern.DoesNotExist:
+#         return JsonResponse({'success': False, 'message': 'Практикант не найден'})
+#     except Document.DoesNotExist:
+#         return JsonResponse({'success': False, 'message': 'Документ не найден'})
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'message': f'Ошибка: {str(e)}'})
 
-        if intern:
-            document = Document.objects.get(id=document_id)
-            docx_file = DocxDocument(document.file.path)
 
-            # Заполняем данные в документе
-            for paragraph in docx_file.paragraphs:
-                if '{{ student_name }}' in paragraph.text:
-                    paragraph.text = paragraph.text.replace('{{ student_name }}',
-                                                          f"{intern.last_name} {intern.first_name} {intern.middle_name}")
-                if '{{ organization_name }}' in paragraph.text:
-                    paragraph.text = paragraph.text.replace('{{ organization_name }}',
-                                                          intern.organization.full_name if intern.organization else '')
-                if '{{ supervisor_name }}' in paragraph.text:
-                    paragraph.text = paragraph.text.replace('{{ supervisor_name }}',
-                                                          intern.college_supervisor.last_name if intern.college_supervisor else '')
+def download_filled_document(request, document_id):
+    # Получаем документ из базы данных
+    document = get_object_or_404(Document, id=document_id)
 
-            # Сохраняем документ в памяти
-            buffer = BytesIO()
-            docx_file.save(buffer)
-            buffer.seek(0)  # Перемещаем указатель в начало файла
+    # Получаем текущего пользователя из сессии
+    email = request.session.get('email')
+    if not email:
+        return HttpResponse("Пользователь не авторизован", status=401)
 
-            # Отправляем файл в ответе
-            response = HttpResponse(buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = f'attachment; filename="{document.title}_filled.docx"'
-            return response
-        else:
-            return JsonResponse({'success': False, 'message': 'Студент не найден.'})
-    return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+    # Получаем аккаунт пользователя
+    account = Account.objects.filter(email=email).first()
+    if not account:
+        return HttpResponse("Аккаунт не найден", status=404)
+
+    # Получаем связанные данные
+    intern = Intern.objects.filter(email=email).first()
+    organization = intern.organization if intern else None
+    college_supervisor = intern.college_supervisor if intern else None
+    org_supervisor = OrganizationSupervisor.objects.filter(organization=organization).first() if organization else None
+
+    # Формируем данные для замены
+    replacements = {
+        '{{student_last_name}}': account.surname,
+        '{{student_first_name}}': account.name,
+        '{{student_middle_name}}': account.patronymic or '',
+        '{{student_group}}': intern.group.name if intern and intern.group else 'Не указана',
+        '{{college_supervisor_name}}': (
+            f"{college_supervisor.last_name} {college_supervisor.first_name} {college_supervisor.middle_name or ''}"
+            if college_supervisor else "Не указан"
+        ),
+        '{{org_supervisor_name}}': (
+            f"{org_supervisor.last_name} {org_supervisor.first_name} {org_supervisor.middle_name or ''}"
+            if org_supervisor else "Не указан"
+        ),
+        '{{org_supervisor_position}}': org_supervisor.position if org_supervisor else "Не указана",
+        '{{org_name}}': organization.full_name if organization else "Не указана",
+        '{{org_legal_address}}': organization.legal_address if organization else "Не указан",
+    }
+
+    # Полный путь к файлу
+    file_path = os.path.join(settings.MEDIA_ROOT, str(document.file))
+
+    try:
+        # Открываем DOCX файл с помощью python-docx
+        doc = DocxDocument(file_path)
+
+        # Заменяем текст в параграфах
+        for paragraph in doc.paragraphs:
+            for key, value in replacements.items():
+                if key in paragraph.text:
+                    paragraph.text = paragraph.text.replace(key, value)
+
+        # Заменяем текст в таблицах
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for key, value in replacements.items():
+                        if key in cell.text:
+                            cell.text = cell.text.replace(key, value)
+
+        # Сохраняем измененный документ
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        # Отправляем файл для скачивания
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="filled_{document.title}.docx"'
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Ошибка при обработке документа: {str(e)}", status=500)
 
 
 def delete_document_ajax(request, document_id):
@@ -459,11 +631,14 @@ def index(request):
     return render(request, "doc/index.html", context)
 
 
+@csrf_exempt
 def register_organization(request):
     if request.method == "POST":
         form = OrganizationRegistrationForm(request.POST)
         if form.is_valid():
-            form.save()
+            organization = form.save(commit=False)
+            organization.is_registration_request = True
+            organization.save()
             messages.success(request, "Заявка на регистрацию организации успешно отправлена. Ожидайте подтверждения.")
             return redirect("authPage")
         else:
@@ -505,6 +680,9 @@ def organizations_list(request):
     return render(request, 'doc/organizations_list.html', {'organizations': pending_organizations})
 
 
+logger = logging.getLogger(__name__)
+
+
 @csrf_exempt
 def approve_organization(request, organization_id):
     if request.method == 'POST':
@@ -516,6 +694,13 @@ def approve_organization(request, organization_id):
             organization.save()
 
             if organization.email:
+                # Проверяем, существует ли уже аккаунт с таким email
+                if Account.objects.filter(email=organization.email).exists():
+                    return JsonResponse(
+                        {'success': False, 'message': 'Аккаунт с таким email уже существует.'}
+                    )
+
+                # Создаем аккаунт для организации
                 account = Account.objects.create(
                     email=organization.email,
                     surname=organization.full_name,
@@ -523,6 +708,18 @@ def approve_organization(request, organization_id):
                     role=Role.objects.get(name='Организация'),
                     password=organization.password  # Используем пароль, заданный при регистрации
                 )
+
+                # Отправляем письмо с подтверждением регистрации
+                subject = 'Ваша регистрация подтверждена'
+                message = f'Ваша организация "{organization.full_name}" успешно зарегистрирована на платформе.'
+                from_email = settings.EMAIL_HOST_USER
+                recipient_list = [organization.email]
+
+                try:
+                    send_mail(subject, message, from_email, recipient_list, fail_silently=False)
+                    logger.info(f"Письмо успешно отправлено на {organization.email}")
+                except Exception as e:
+                    logger.error(f"Ошибка при отправке письма: {e}")
 
             return JsonResponse(
                 {'success': True, 'message': f'Организация "{organization.full_name}" успешно подтверждена.'})

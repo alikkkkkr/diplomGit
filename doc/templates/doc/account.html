@@ -173,6 +173,19 @@
         .document-item button:hover {
             background-color: #218838;
         }
+
+        .btn {
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #218838;
+        }
     </style>
 
     <div class="account-container">
@@ -194,11 +207,11 @@
             </div>
 
             <!-- Кнопка выхода -->
-                <div class="logout-btn" style="margin-top: 5%">
-                    <a href="{% url 'logoutPage' %}">
-                        <button type="submit">Выйти</button>
-                    </a>
-                </div>
+            <div class="logout-btn" style="margin-top: 5%">
+                <a href="{% url 'logoutPage' %}">
+                    <button type="submit">Выйти</button>
+                </a>
+            </div>
 
             <!-- Список документов -->
             <div class="documents-list">
@@ -206,7 +219,9 @@
                 {% for document in documents %}
                     <div class="document-item">
                         <a href="{{ document.file.url }}" target="_blank">{{ document.title }}</a>
-                        <button onclick="fillDocumentData({{ document.id }})">Заполнить данные</button>
+                        <a href="{% url 'download_filled_document' document.id %}" class="btn">
+                            Скачать заполненный документ
+                        </a>
                     </div>
                 {% endfor %}
             </div>
@@ -267,7 +282,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `filled_document_${documentId}.docx`;  // Имя файла для скачивания
+                    a.download = `${documentId}.docx`;  // Имя файла для скачивания
                     document.body.appendChild(a);
                     a.click();  // Автоматически нажимаем на ссылку
                     window.URL.revokeObjectURL(url);  // Освобождаем память
