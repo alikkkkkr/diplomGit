@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.hashers import make_password
 from django.forms import inlineformset_factory
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from .models import *
 
@@ -307,3 +308,27 @@ class StudentRegistrationForm(forms.ModelForm):
             intern.save()
             Student.objects.create(account=account, is_intern=False)  # Создаем запись студента
         return account
+
+
+class InterviewInvitationForm(forms.Form):
+    interview_date = forms.DateTimeField(
+        label="Дата и время собеседования",
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        input_formats=['%Y-%m-%dT%H:%M']
+    )
+    location = forms.CharField(
+        label="Место проведения",
+        max_length=255,
+        widget=forms.TextInput(attrs={'placeholder': 'Адрес или онлайн-платформа'})
+    )
+    message = forms.CharField(
+        label="Дополнительное сообщение",
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Дополнительная информация...'})
+    )
+
+    def clean_interview_date(self):
+        date = self.cleaned_data['interview_date']
+        if date < timezone.now():
+            raise forms.ValidationError("Дата собеседования не может быть в прошлом")
+        return date

@@ -1,312 +1,875 @@
-{% extends 'base2.html' %}
+{% extends 'base_student.html' %}
+
+{% block extra_head %}
+    <!-- Подключение Font Awesome для иконок -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Подключение Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
 
 {% block content %}
-    <style>
-        /* Подключение шрифта Oswald */
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap');
+    <div class="account-container fade-in">
+        <h1 class="account-title"><i class="fas fa-user-circle"></i> Личный кабинет</h1>
 
-        /* Общие стили */
+        {% if request.session.email %}
+            <!-- Карточка пользователя с возможностью редактирования email -->
+            <div class="card mb-4 profile-card">
+                <div class="card-body user-profile">
+                    <div class="profile-header">
+{#                        <div class="avatar-placeholder">#}
+{#                            <i class="fas fa-user-circle"></i>#}
+{#                        </div>#}
+                        <div>
+                            <h2 class="user-name">{{ request.session.user_surname }} {{ request.session.user_name }} {{ request.session.user_patronymic }}</h2>
+                            <p class="user-role"><span class="badge bg-primary">{{ request.session.role }}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="user-details">
+                        <div class="detail-item">
+                            <i class="fas fa-envelope"></i>
+                            <span id="current-email">{{ request.session.email }}</span>
+                            <button class="btn btn-sm btn-outline-secondary ms-2" onclick="openEmailModal()">
+                                <i class="fas fa-edit"></i> Изменить
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="changePasswordBtn" class="btn btn-account-secondary mt-3">
+                        <i class="fas fa-key"></i> Изменить пароль
+                    </button>
+                </div>
+            </div>
+
+            <!-- Секция документов -->
+            <div class="card mb-4 documents-section">
+                <div class="card-header">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Документы</span>
+                </div>
+                <div class="card-body">
+                    {% for document in documents %}
+                        <div class="document-item">
+                            <div class="document-info">
+                                <i class="fas fa-file-pdf document-icon"></i>
+                                <span class="document-title">{{ document.title }}</span>
+                            </div>
+                            <div class="document-actions">
+                                <a href="{{ document.file.url }}" target="_blank" class="btn btn-view"
+                                   title="Просмотреть">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'download_filled_document' document.id %}" class="btn btn-download"
+                                   title="Скачать">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p class="text-muted">Нет доступных документов</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Секция навыков -->
+            <div class="card mb-4 skills-section">
+                <div class="card-header">
+                    <i class="fas fa-tags"></i>
+                    <span>Навыки</span>
+                    <button id="editSkillsBtn" class="btn btn-account-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if intern.tags.all %}
+                        <div class="skills-cloud">
+                            {% for tag in intern.tags.all %}
+                                <span class="skill-tag">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-tag"></i>
+                            <p class="text-muted">Навыки не указаны</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Секция резюме -->
+            <div class="card mb-4 resume-section">
+                <div class="card-header">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Резюме</span>
+                    <button id="editResumeBtn" class="btn btn-account-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if intern.resume %}
+                        <div class="resume-preview">
+                            <i class="fas fa-file-pdf"></i>
+                            <a href="{{ intern.resume.url }}" target="_blank" class="btn btn-account-primary">
+                                <i class="fas fa-eye"></i> Просмотреть резюме
+                            </a>
+                            <a href="{{ intern.resume.url }}" download class="btn btn-download">
+                                <i class="fas fa-download"></i> Скачать
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-file-upload"></i>
+                            <p class="text-muted">Резюме не загружено</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Секция организации -->
+            {% if intern.organization %}
+                <div class="card mb-4 organization-section">
+                    <div class="card-header">
+                        <i class="fas fa-building"></i>
+                        <span>Место практики</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="organization-header">
+                            <i class="fas fa-landmark"></i>
+                            <h5 class="section-title">{{ intern.organization.full_name }}</h5>
+                        </div>
+
+                        <div class="contact-info">
+                            <div class="contact-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>{{ intern.organization.actual_address }}</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-phone"></i>
+                                <span>{{ intern.organization.phone_number }}</span>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>{{ intern.organization.email }}</span>
+                            </div>
+                        </div>
+
+                        {% if org_supervisor %}
+                            <div class="supervisor-info mt-4">
+                                <h6 class="section-title">
+                                    <i class="fas fa-user-tie"></i>
+                                    Руководитель от организации
+                                </h6>
+                                <div class="supervisor-details">
+                                    <p>{{ org_supervisor.last_name }} {{ org_supervisor.first_name }} {{ org_supervisor.middle_name }}</p>
+                                    <div class="contact-item">
+                                        <i class="fas fa-briefcase"></i>
+                                        <span>{{ org_supervisor.position }}</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>{{ org_supervisor.phone_number }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Кнопка выхода -->
+            <div class="d-flex justify-content-center py-4">
+                <a href="{% url 'logoutPage' %}" class="btn btn-account-danger">
+                    <i class="fas fa-sign-out-alt"></i> Выйти из аккаунта
+                </a>
+            </div>
+
+        {% else %}
+            <div class="card empty-login">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-lock"></i>
+                    <p>Вы не вошли в систему. Пожалуйста, войдите или зарегистрируйтесь.</p>
+                    <a href="#" class="btn btn-account-primary">
+                        <i class="fas fa-sign-in-alt"></i> Войти
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Модальное окно для изменения email -->
+    <div id="emailModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-envelope"></i> Изменение email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changeEmailForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="new_email" class="form-label">Новый email</label>
+                            <input type="email" class="form-control" id="new_email" name="new_email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">Подтвердите пароль</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                                   required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-account-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <button type="button" class="btn btn-account-primary" id="saveEmailBtn">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для изменения пароля -->
+    <div id="passwordModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-key"></i> Изменение пароля</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="old_password" class="form-label">Старый пароль</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="old_password" name="old_password"
+                                       required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Новый пароль</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="new_password" name="new_password"
+                                       required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_new_password" class="form-label">Подтвердите новый пароль</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="confirm_new_password"
+                                       name="confirm_new_password" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-account-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <button type="button" class="btn btn-account-primary" id="savePasswordBtn">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования навыков -->
+    <div id="skillsModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-tags"></i> Редактирование навыков</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editSkillsForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Выберите существующие навыки:</label>
+                            <div class="skills-checkbox-container">
+                                {% for tag in all_tags %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="tag_{{ tag.id }}"
+                                               name="existing_tags"
+                                               value="{{ tag.id }}" {% if tag in intern.tags.all %}checked{% endif %}>
+                                        <label class="form-check-label" for="tag_{{ tag.id }}">
+                                            <i class="fas fa-tag"></i> {{ tag.name }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_tags" class="form-label">
+                                <i class="fas fa-plus-circle"></i> Добавить новые навыки (разделяйте запятыми):
+                            </label>
+                            <textarea class="form-control" id="new_tags" name="new_tags" rows="3"
+                                      placeholder="Например: Python, Django, SQL"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-account-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <button type="button" class="btn btn-account-primary" id="saveSkillsBtn">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для загрузки резюме -->
+    <div id="resumeModal" class="modal fade" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-upload"></i> Загрузка резюме</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadResumeForm" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="resume_file" class="form-label">
+                                <i class="fas fa-file-pdf"></i> Выберите файл резюме (PDF, DOC, DOCX)
+                            </label>
+                            <input class="form-control" type="file" id="resume_file" name="resume_file"
+                                   accept=".pdf,.doc,.docx">
+                        </div>
+                        {% if intern.resume %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="delete_resume" id="delete_resume">
+                                <label class="form-check-label" for="delete_resume">
+                                    <i class="fas fa-trash-alt"></i> Удалить текущее резюме
+                                </label>
+                            </div>
+                        {% endif %}
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-account-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Отмена
+                    </button>
+                    <button type="button" class="btn btn-account-primary" id="saveResumeBtn">
+                        <i class="fas fa-upload"></i> Загрузить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Основные стили */
         body {
             font-family: 'Oswald', sans-serif;
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+            min-height: 100vh;
             color: #333;
-            margin: 0;
-            padding: 0;
+            line-height: 1.6;
         }
 
         .account-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin: 2rem auto;
             max-width: 900px;
-            margin: 0 auto;
         }
 
         .account-title {
-            margin-bottom: 30px;
-            font-size: 2em;
-            color: #333;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 2rem;
             text-align: center;
-        }
-
-        .user-info {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
-            display: flex; /* Используем flexbox */
-            flex-direction: column; /* Вертикальное расположение элементов */
-        }
-
-        .user-name {
-            font-size: 1.5em;
-            color: #333;
-            margin-bottom: 15px;
-        }
-
-        .info-details {
-            font-size: 1rem;
-            color: #555;
-            line-height: 1.5;
-            margin-bottom: 20px; /* Отступ перед кнопкой */
-        }
-
-        .info-details p {
-            margin: 5px 0;
-        }
-
-        .pending-status {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #ffeeba;
-            border: 1px solid #ffdf7e;
-            border-radius: 5px;
-            color: #856404;
-            text-align: center;
-            font-size: 1rem;
-        }
-
-        /* Стили для кнопки выхода */
-        .logout-btn {
-            display: flex; /* Используем flexbox для выравнивания */
-            justify-content: center; /* Выравнивание по горизонтали */
-            margin-top: auto; /* Прикрепляем кнопку к нижней части контейнера */
-        }
-
-        .logout-btn button {
-            padding: 5px 15px;
-            background-color: #343a40;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .logout-btn button:hover {
-            background-color: #23272b;
-        }
-
-        /* Стили для модального окна */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
+            display: flex;
             align-items: center;
+            justify-content: center;
         }
 
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
+        .account-title i {
+            margin-right: 15px;
+            color: #007bff;
+        }
+
+        /* Стили карточек */
+        .card {
+            border: none;
             border-radius: 8px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .modal-header {
-            font-size: 1.2em;
-            margin-bottom: 15px;
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .modal-body {
-            margin-bottom: 15px;
-        }
-
-        .modal-footer {
-            text-align: right;
-        }
-
-        .modal-footer button {
-            margin-left: 10px;
-        }
-
-        /* Стили для списка документов */
-        .documents-list {
-            margin-top: 20px;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .document-item {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 15px;
-            margin-bottom: 10px;
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+            font-weight: 500;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .document-item a {
-            text-decoration: none;
+        .card-header i {
+            margin-right: 10px;
+            color: #6c757d;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Профиль пользователя */
+        .profile-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-left: 4px solid #007bff;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .avatar-placeholder {
+            width: 60px;
+            height: 60px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 2rem;
+            color: #6c757d;
+        }
+
+        .user-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-role .badge {
+            font-weight: 400;
+            font-size: 0.8rem;
+            padding: 0.35em 0.65em;
+        }
+
+        .user-details {
+            margin-top: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+
+        .detail-item i {
+            margin-right: 0.75rem;
             color: #007bff;
+            width: 20px;
+            text-align: center;
         }
 
-        .document-item a:hover {
-            text-decoration: underline;
+        /* Документы */
+        .documents-section {
+            border-left: 4px solid #28a745;
         }
 
-        .document-item button {
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
+        .document-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+            margin-bottom: 0.75rem;
         }
 
-        .document-item button:hover {
-            background-color: #218838;
+        .document-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
         }
 
-        .btn {
-            padding: 5px 10px;
+        .document-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .document-icon {
+            font-size: 1.5rem;
+            color: #dc3545;
+            margin-right: 1rem;
+        }
+
+        .document-title {
+            font-weight: 500;
+        }
+
+        .document-actions {
+            display: flex;
+        }
+
+        .document-actions .btn {
+            padding: 0.5rem;
+            margin-left: 0.5rem;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .document-actions .btn:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-view {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .btn-download {
             background-color: #28a745;
             color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            display: inline-block;
         }
 
-        .btn:hover {
-            background-color: #218838;
+        /* Навыки */
+        .skills-section {
+            border-left: 4px solid #fd7e14;
+        }
+
+        .skills-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .skill-tag {
+            display: inline-block;
+            background-color: #e9ecef;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .skill-tag:hover {
+            background-color: #007bff;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Резюме */
+        .resume-section {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .resume-preview {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .resume-preview i {
+            font-size: 2rem;
+            color: #dc3545;
+        }
+
+        /* Организация */
+        .organization-section {
+            border-left: 4px solid #6f42c1;
+        }
+
+        .organization-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .organization-header i {
+            font-size: 1.5rem;
+            color: #6f42c1;
+            margin-right: 1rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+
+        .contact-item i {
+            margin-right: 0.75rem;
+            color: #6c757d;
+            width: 20px;
+            text-align: center;
+        }
+
+        .supervisor-info {
+            padding-top: 1rem;
+            border-top: 1px dashed #dee2e6;
+            margin-top: 1rem;
+        }
+
+        /* Пустые состояния */
+        .empty-state {
+            text-align: center;
+            padding: 1.5rem;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #e9ecef;
+        }
+
+        .empty-login {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .empty-login i {
+            font-size: 3rem;
+            color: #e9ecef;
+            margin-bottom: 1rem;
+        }
+
+        /* Кнопки */
+        .btn-account {
+            font-weight: 500;
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-account i {
+            margin-right: 8px;
+        }
+
+        .btn-account-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-account-primary:hover {
+            background-color: #0069d9;
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .btn-account-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-account-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .btn-account-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-account-danger:hover {
+            background-color: #c82333;
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        /* Модальные окна */
+        .modal-content {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+        }
+
+        .modal-title {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .modal-title i {
+            margin-right: 10px;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e9ecef;
+            padding: 1rem 1.5rem;
+        }
+
+        .skills-checkbox-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .form-check-label {
+            display: flex;
+            align-items: center;
+        }
+
+        .form-check-label i {
+            margin-right: 8px;
+            color: #6c757d;
+        }
+
+        /* Анимации */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .account-container {
+                padding: 1rem;
+                margin: 1rem auto;
+            }
+
+            .account-title {
+                font-size: 1.5rem;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .avatar-placeholder {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+
+            .document-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .document-actions {
+                margin-top: 1rem;
+                align-self: flex-end;
+            }
+
+            .resume-preview {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 
-    <div class="account-container">
-        <h1 class="account-title">Личный кабинет</h1>
-
-        {% if request.session.email %}
-            <div class="user-info">
-                <h3 class="user-name">{{ request.session.user_surname }} {{ request.session.user_name }} {{ request.session.user_patronymic }}</h3>
-                <div class="info-details">
-                    <p><strong>Email: </strong>{{ request.session.email }}</p>
-                    <p>{{ request.session.role }}</p>
-                </div>
-
-                <div class="logout-btn">
-                    <!-- Кнопка для открытия модального окна -->
-                    <button onclick="openModal()" type="submit" style="margin-bottom: 20px">Изменить пароль</button>
-                </div>
-
-            </div>
-
-            <!-- Кнопка выхода -->
-            <div class="logout-btn" style="margin-top: 5%">
-                <a href="{% url 'logoutPage' %}">
-                    <button type="submit">Выйти</button>
-                </a>
-            </div>
-
-            <!-- Список документов -->
-            <div class="documents-list">
-                <h3>Доступные документы</h3>
-                {% for document in documents %}
-                    <div class="document-item">
-                        <a href="{{ document.file.url }}" target="_blank">{{ document.title }}</a>
-                        <a href="{% url 'download_filled_document' document.id %}" class="btn">
-                            Скачать заполненный документ
-                        </a>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>Вы не вошли в систему. Пожалуйста, войдите или зарегистрируйтесь.</p>
-        {% endif %}
-    </div>
-
-    <!-- Модальное окно для изменения пароля -->
-    <div id="changePasswordModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Изменение пароля</h3>
-            </div>
-            <div class="modal-body">
-                <form id="changePasswordForm">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="old_password">Старый пароль</label>
-                        <input type="password" id="old_password" name="old_password" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="new_password">Новый пароль</label>
-                        <input type="password" id="new_password" name="new_password" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm_new_password">Подтвердите новый пароль</label>
-                        <input type="password" id="confirm_new_password" name="confirm_new_password"
-                               class="form-control" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeModal()" class="btn btn-secondary">Отмена</button>
-                <button onclick="submitChangePassword()" class="btn btn-primary">Сохранить</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        function fillDocumentData(documentId) {
-            fetch(`/fill_document_data/${documentId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-                .then(response => {
-                    if (response.ok) {
-                        return response.blob();  // Получаем файл как Blob
-                    } else {
-                        throw new Error('Ошибка при заполнении данных.');
-                    }
-                })
-                .then(blob => {
-                    // Создаем ссылку для скачивания файла
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${documentId}.docx`;  // Имя файла для скачивания
-                    document.body.appendChild(a);
-                    a.click();  // Автоматически нажимаем на ссылку
-                    window.URL.revokeObjectURL(url);  // Освобождаем память
-                    document.body.removeChild(a);  // Удаляем ссылку из DOM
-                })
-                .catch(error => {
-                    console.error('Ошибка:', error);
-                    alert('Произошла ошибка при заполнении данных.');
-                });
-        }
-    </script>
+        // Ждем полной загрузки DOM
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("Документ загружен, инициализируем обработчики");
 
-    <script>
-        // Функции для управления модальным окном
-        function openModal() {
-            document.getElementById('changePasswordModal').style.display = 'flex';
-        }
+            // Инициализация модальных окон
+            const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+            const skillsModal = new bootstrap.Modal(document.getElementById('skillsModal'));
+            const resumeModal = new bootstrap.Modal(document.getElementById('resumeModal'));
 
-        function closeModal() {
-            document.getElementById('changePasswordModal').style.display = 'none';
-        }
+            // Обработчики для кнопок открытия модальных окон
+            document.getElementById('changePasswordBtn').addEventListener('click', function () {
+                console.log("Открываем модальное окно смены пароля");
+                passwordModal.show();
+            });
 
-        // Функция для отправки формы через AJAX
-        function submitChangePassword() {
+            document.getElementById('editSkillsBtn').addEventListener('click', function () {
+                console.log("Открываем модальное окно редактирования навыков");
+                skillsModal.show();
+            });
+
+            document.getElementById('editResumeBtn').addEventListener('click', function () {
+                console.log("Открываем модальное окно загрузки резюме");
+                resumeModal.show();
+            });
+
+            // Обработчик для сохранения пароля
+            document.getElementById('savePasswordBtn').addEventListener('click', function () {
+                submitChangePassword(passwordModal);
+            });
+
+            // Обработчик для сохранения навыков
+            document.getElementById('saveSkillsBtn').addEventListener('click', function () {
+                submitSkillsForm(skillsModal);
+            });
+
+            // Обработчик для сохранения резюме
+            document.getElementById('saveResumeBtn').addEventListener('click', function () {
+                submitResumeForm(resumeModal);
+            });
+
+            // Функция для вывода ошибок в консоль
+            window.addEventListener('error', function (e) {
+                console.error('Ошибка:', e.message, 'в файле:', e.filename, 'строка:', e.lineno);
+            });
+        });
+
+        // Функция отправки формы пароля
+        function submitChangePassword(modal) {
+            console.log("Отправка формы смены пароля");
+
             const form = document.getElementById('changePasswordForm');
             const formData = new FormData(form);
 
@@ -317,18 +880,145 @@
                     'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
                 },
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка сети');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success) {
                         alert('Пароль успешно изменен.');
-                        closeModal();
+                        modal.hide();
                     } else {
                         alert(data.error || 'Ошибка при изменении пароля.');
                     }
                 })
                 .catch(error => {
                     console.error('Ошибка:', error);
+                    alert('Произошла ошибка: ' + error.message);
+                });
+        }
+
+        // Функция для открытия модального окна email
+        function openEmailModal() {
+            const emailModal = new bootstrap.Modal(document.getElementById('emailModal'));
+            emailModal.show();
+        }
+
+        // Обработчик для сохранения email
+        document.getElementById('saveEmailBtn')?.addEventListener('click', function () {
+            submitEmailChange();
+        });
+
+        // Функция отправки формы изменения email
+        function submitEmailChange() {
+            const form = document.getElementById('changeEmailForm');
+            const formData = new FormData(form);
+            formData.append('current_email', '{{ request.session.email }}');
+
+            fetch("{% url 'change_student_email' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Email успешно изменен. Пожалуйста, войдите снова.');
+                        window.location.href = "{% url 'logoutPage' %}";
+                    } else {
+                        alert(data.error || 'Ошибка при изменении email.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
                     alert('Произошла ошибка при отправке запроса.');
+                });
+        }
+
+        // Функция отправки формы навыков
+        function submitSkillsForm(modal) {
+            console.log("Отправка формы навыков");
+
+            const form = document.getElementById('editSkillsForm');
+            const formData = new FormData();
+
+            // Добавляем существующие теги
+            const existingTags = document.querySelectorAll('input[name="existing_tags"]:checked');
+            const selectedTags = Array.from(existingTags).map(tag => tag.value);
+
+            // Добавляем новые теги
+            const newTagsText = document.getElementById('new_tags').value;
+
+            formData.append('intern_id', '{{ intern.id }}');
+            formData.append('existing_tags', JSON.stringify(selectedTags));
+            formData.append('new_tags', newTagsText);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            fetch("{% url 'update_intern_skills' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка сети');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Навыки успешно обновлены.');
+                        modal.hide();
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Ошибка при обновлении навыков.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка: ' + error.message);
+                });
+        }
+
+        // Функция отправки формы резюме
+        function submitResumeForm(modal) {
+            console.log("Отправка формы резюме");
+
+            const form = document.getElementById('uploadResumeForm');
+            const formData = new FormData(form);
+            formData.append('intern_id', '{{ intern.id }}');
+
+            fetch("{% url 'upload_intern_resume' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Ошибка сети');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('Резюме успешно обновлено.');
+                        modal.hide();
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Ошибка при загрузке резюме.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка: ' + error.message);
                 });
         }
     </script>

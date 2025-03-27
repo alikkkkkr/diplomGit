@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Приглашение на собеседование</title>
+    <style>
+        .info-block {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #0d6efd;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <p>Здравствуйте, {{ intern.first_name }} {{ intern.last_name }}!</p>
+
+    <p>{{ sender_name }} приглашает вас на собеседование:</p>
+
+    <ul>
+        <li><strong>Дата:</strong> {{ formatted_date }}</li>
+        <li><strong>Место:</strong> {{ invitation.location }}</li>
+    </ul>
+
+    {% if invitation.message %}
+    <div class="info-block">
+        <h4 style="margin-top: 0;">Дополнительная информация:</h4>
+        <p>{{ invitation.message }}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Для связи с отправителем: <a href="mailto:{{ sender_email }}">{{ sender_email }}</a></p>
+        <p>С уважением,<br>Команда практики</p>
+    </div>
+</body>
+</html>

@@ -1,61 +1,240 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
-<div class="container mt-5">
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Профиль студента</h1>
+            <a href="{% url 'interns_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Назад к списку
+            </a>
+        </div>
 
-- добавление навыков и резюме при создании<br>
-- просмотр файла<br>
-- отображать лейблы только при наличии данных<br>
-- заявка на работу от организации?<br>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <!-- Basic Info Section -->
+                <div class="d-flex align-items-start mb-4">
+                    <div class="flex-grow-1">
+                        <h3 class="card-title mb-3">
+                            <i class="fas fa-user-graduate me-2 text-primary"></i>
+                            {{ intern.last_name }} {{ intern.first_name }} {{ intern.middle_name|default_if_none:"" }}
+                        </h3>
 
-    <h1 class="mb-4">Данные студента</h1>
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">{{ intern.last_name }} {{ intern.first_name }} {{ intern.middle_name }}</h5>
-            <p class="card-text"><strong>Телефон:</strong> {{ intern.phone_number }}</p>
-            <p class="card-text"><strong>Email:</strong> {{ intern.email }}</p>
-            <p class="card-text"><strong>Метро:</strong> {{ intern.metro_station }}</p>
-            <p class="card-text"><strong>Группа:</strong> {{ intern.group.name }}</p>
-            <p class="card-text"><strong>Организация:</strong> {{ intern.organization.full_name }}</p>
-            <p class="card-text"><strong>Навыки:</strong>
-                {% for tag in intern.tags.all %}
-                    {{ tag.name }}{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </p>
-            {% if intern.resume %}
-                <p class="card-text">
-                    <strong>Резюме:</strong>
-                    {% if intern.resume_access_granted %}
-                        <a href="{{ intern.resume.url }}" target="_blank">Скачать резюме</a>
-                    {% else %}
-                        <button id="request-resume-btn" class="btn btn-primary" data-intern-id="{{ intern.id }}">Запросить резюме</button>
-                    {% endif %}
-                </p>
-            {% endif %}
+                        <div class="row">
+                            {% if intern.phone_number %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0">
+                                        <i class="fas fa-phone me-2 text-muted"></i>
+                                        <strong>Телефон:</strong> {{ intern.phone_number }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            {% if intern.email %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0">
+                                        <i class="fas fa-envelope me-2 text-muted"></i>
+                                        <strong>Email:</strong> {{ intern.email }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            {% if intern.metro_station %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0">
+                                        <i class="fas fa-subway me-2 text-muted"></i>
+                                        <strong>Метро:</strong> {{ intern.metro_station }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            {% if intern.group %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0">
+                                        <i class="fas fa-users me-2 text-muted"></i>
+                                        <strong>Группа:</strong> {{ intern.group.name }}
+                                    </p>
+                                </div>
+                            {% endif %}
+
+                            {% if intern.organization %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0">
+                                        <i class="fas fa-building me-2 text-muted"></i>
+                                        <strong>Организация:</strong> {{ intern.organization.full_name }}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skills Section -->
+                {% if intern.tags.all %}
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-tags me-2 text-primary"></i>
+                            Навыки
+                        </h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for tag in intern.tags.all %}
+                                <span class="badge bg-primary bg-opacity-10 text-primary py-2 px-3">
+                            <i class="fas fa-circle-notch me-1 small"></i>
+                            {{ tag.name }}
+                        </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Resume Section -->
+                {% if intern.resume %}
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-file-alt me-2 text-primary"></i>
+                            Резюме
+                        </h5>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if intern.resume_access_granted %}
+                                <a href="{{ intern.resume.url }}"
+                                   class="btn btn-outline-primary"
+                                   target="_blank"
+                                   download>
+                                    <i class="fas fa-download me-2"></i>Скачать резюме
+                                </a>
+                                <a href="{{ intern.resume.url }}"
+                                   class="btn btn-outline-secondary"
+                                   target="_blank">
+                                    <i class="fas fa-eye me-2"></i>Просмотреть
+                                </a>
+                            {% else %}
+                                <button id="request-resume-btn"
+                                        class="btn btn-primary"
+                                        data-intern-id="{{ intern.id }}">
+                                    <i class="fas fa-envelope me-2"></i>Запросить доступ к резюме
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Interview Request Section - Only for Organization role -->
+                {% if request.session.role == 'Организация' and intern.email %}
+                    <div class="mt-4 pt-3 border-top">
+                        <h5 class="mb-3">
+                            <i class="fas fa-calendar-check me-2 text-primary"></i>
+                            Приглашение на собеседование
+                        </h5>
+                        <form id="interview-form" class="row g-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="intern_id" value="{{ intern.id }}">
+
+                            <div class="col-md-6">
+                                <label for="interview-date" class="form-label">Дата собеседования</label>
+                                <input type="datetime-local" class="form-control" id="interview-date"
+                                       name="interview_date" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="interview-location" class="form-label">Место проведения</label>
+                                <input type="text" class="form-control" id="interview-location"
+                                       name="interview_location" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="interview-message" class="form-label">Дополнительное сообщение</label>
+                                <textarea class="form-control" id="interview-message" name="interview_message"
+                                          rows="3"></textarea>
+                            </div>
+
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-paper-plane me-2"></i>Отправить приглашение
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
-    <a href="{% url 'interns_list' %}" class="btn btn-dark mt-3">Назад к списку</a>
-</div>
 
-<script>
-document.getElementById('request-resume-btn').addEventListener('click', function() {
-    const internId = this.getAttribute('data-intern-id');
-    fetch(`/request_resume_access/${internId}/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}'
-        },
-        body: JSON.stringify({})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            location.reload(); // Перезагружаем страницу для обновления состояния
-        } else {
-            alert(data.message);
+    <script>
+        document.getElementById('interview-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Отправка...';
+
+            // Собираем данные формы
+            const formData = {
+                intern_id: this.intern_id.value,
+                interview_date: this.interview_date.value,
+                interview_location: this.interview_location.value,
+                interview_message: this.interview_message.value
+            };
+
+            fetch('/send_interview_invitation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(formData)
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw err;
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showAlert('success', 'Приглашение успешно отправлено!');
+                        this.reset();
+                    } else {
+                        showAlert('danger', data.message || 'Произошла ошибка');
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', error.message || 'Ошибка соединения с сервером');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Отправить приглашение';
+                });
+        });
+    </script>
+
+    <style>
+        .card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
-    });
-});
-</script>
+
+        .card-title {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .badge {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
 {% endblock %}

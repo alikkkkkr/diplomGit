@@ -39,6 +39,7 @@ EMAIL_USE_SSL = True
 EMAIL_HOST_USER = 'eu.ruseva@yandex.ru'
 EMAIL_HOST_PASSWORD = 'xjkpockxdzwsrmcu'
 DEFAULT_FROM_EMAIL = 'DocManager'
+SERVER_EMAIL = 'eu.ruseva@yandex.ru'  # Для ошибок
 
 # DjangoSMPTYandexAlik
 # xjkpockxdzwsrmcu

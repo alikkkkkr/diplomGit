@@ -1,9 +1,13 @@
 import os
+from datetime import datetime
 from io import BytesIO
 
+from django.core.mail import EmailMultiAlternatives
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password
+from django.template.loader import render_to_string
+
 from .forms import *
 import pandas as pd
 from django.core.exceptions import ValidationError
@@ -258,136 +262,6 @@ def upload_document_ajax(request):
         else:
             return JsonResponse({'success': False, 'errors': form.errors})
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
-
-
-# def fill_document_data(request, document_id):
-#     if request.method != 'POST':
-#         return JsonResponse({'success': False, 'message': 'Метод не разрешен'})
-#
-#     try:
-#         # Получаем текущего пользователя и практиканта
-#         user = Account.objects.get(email=request.session.get('email'))
-#         intern = Intern.objects.get(email=user.email)
-#         document = Document.objects.get(id=document_id)
-#
-#         # Открываем документ
-#         doc = DocxDocument(document.file.path)
-#
-#         # Получаем все возможные данные
-#         def get_data():
-#             data = {
-#                 # Данные студента
-#                 'student_full_name': f"{intern.last_name} {intern.first_name} {intern.middle_name or ''}".strip(),
-#                 'student_last_name': intern.last_name,
-#                 'student_first_name': intern.first_name,
-#                 'student_middle_name': intern.middle_name or '',
-#                 'student_phone': intern.phone_number or '',
-#                 'student_email': intern.email or '',
-#                 'student_metro': intern.metro_station or '',
-#                 'student_group': intern.group.name if intern.group else '',
-#
-#                 # Данные организации
-#                 'org_name': intern.organization.full_name if intern.organization else '',
-#                 'org_legal_address': intern.organization.legal_address if intern.organization else '',
-#                 'org_actual_address': intern.organization.actual_address if intern.organization else '',
-#                 'org_inn': intern.organization.inn if intern.organization else '',
-#                 'org_kpp': intern.organization.kpp if intern.organization else '',
-#                 'org_ogrn': intern.organization.ogrn if intern.organization else '',
-#                 'org_phone': intern.organization.phone_number if intern.organization else '',
-#                 'org_email': intern.organization.email if intern.organization else '',
-#
-#                 # Руководитель от организации
-#                 'org_supervisor_name': '',
-#                 'org_supervisor_phone': '',
-#                 'org_supervisor_position': '',
-#
-#                 # Руководитель от колледжа
-#                 'college_supervisor_name': '',
-#                 'college_supervisor_email': '',
-#                 'college_supervisor_position': '',
-#
-#                 # Данные практики
-#                 'practice_type': '',
-#                 'practice_hours': '',
-#                 'practice_schedule': ''
-#             }
-#
-#             # Заполняем данные руководителей, если они есть
-#             if hasattr(intern.organization, 'organizationsupervisor'):
-#                 sup = intern.organization.organizationsupervisor
-#                 data.update({
-#                     'org_supervisor_name': f"{sup.last_name} {sup.first_name} {sup.middle_name or ''}".strip(),
-#                     'org_supervisor_phone': sup.phone_number or '',
-#                     'org_supervisor_position': sup.position or ''
-#                 })
-#
-#             if intern.college_supervisor:
-#                 sup = intern.college_supervisor
-#                 data.update({
-#                     'college_supervisor_name': f"{sup.last_name} {sup.first_name} {sup.middle_name or ''}".strip(),
-#                     'college_supervisor_email': sup.email or '',
-#                     'college_supervisor_position': sup.position or ''
-#                 })
-#
-#             # Данные практики
-#             if document.practice:
-#                 practice = document.practice
-#                 practice_type = practice.pp or practice.pm or ('Преддипломная' if practice.preddiplom else '')
-#                 data.update({
-#                     'practice_type': practice_type,
-#                     'practice_hours': str(practice.hours) if practice.hours else '',
-#                     'practice_schedule': practice.schedule.schedule_description if practice.schedule else ''
-#                 })
-#
-#             return data
-#
-#         # Получаем все данные
-#         all_data = get_data()
-#
-#         # Функция для замены текста с сохранением форматирования
-#         def replace_text(doc_element, pattern, replacement):
-#             if pattern in doc_element.text:
-#                 inline = doc_element.runs
-#                 for i in range(len(inline)):
-#                     if pattern in inline[i].text:
-#                         text = inline[i].text.replace(pattern, replacement)
-#                         inline[i].text = text
-#
-#         # Обрабатываем весь документ
-#         for pattern, replacement in all_data.items():
-#             full_pattern = f'{{{{{pattern}}}}}'  # Шаблон в виде {{field_name}}
-#
-#             # Обрабатываем параграфы
-#             for paragraph in doc.paragraphs:
-#                 replace_text(paragraph, full_pattern, replacement)
-#
-#             # Обрабатываем таблицы
-#             for table in doc.tables:
-#                 for row in table.rows:
-#                     for cell in row.cells:
-#                         for paragraph in cell.paragraphs:
-#                             replace_text(paragraph, full_pattern, replacement)
-#
-#         # Сохраняем в памяти
-#         buffer = BytesIO()
-#         doc.save(buffer)
-#         buffer.seek(0)
-#
-#         # Отправляем файл
-#         response = FileResponse(
-#             buffer,
-#             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-#             as_attachment=True,
-#             filename=f"filled_{document.title}.docx"
-#         )
-#         return response
-#
-#     except Intern.DoesNotExist:
-#         return JsonResponse({'success': False, 'message': 'Практикант не найден'})
-#     except Document.DoesNotExist:
-#         return JsonResponse({'success': False, 'message': 'Документ не найден'})
-#     except Exception as e:
-#         return JsonResponse({'success': False, 'message': f'Ошибка: {str(e)}'})
 
 
 def download_filled_document(request, document_id):
@@ -732,6 +606,68 @@ def student_index(request):
     return render(request, 'doc/student_index.html')
 
 
+@csrf_exempt
+def update_intern_skills(request):
+    if request.method == 'POST':
+        try:
+            intern_id = request.POST.get('intern_id')
+            existing_tags = json.loads(request.POST.get('existing_tags', '[]'))
+            new_tags_text = request.POST.get('new_tags', '')
+
+            intern = Intern.objects.get(id=intern_id)
+
+            # Очищаем текущие теги
+            intern.tags.clear()
+
+            # Добавляем выбранные существующие теги
+            for tag_id in existing_tags:
+                tag = Tag.objects.get(id=tag_id)
+                intern.tags.add(tag)
+
+            # Добавляем новые теги
+            new_tags_list = [tag.strip() for tag in new_tags_text.split(',') if tag.strip()]
+            for tag_name in new_tags_list:
+                tag, created = Tag.objects.get_or_create(name=tag_name)
+                intern.tags.add(tag)
+
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
+@csrf_exempt
+def upload_intern_resume(request):
+    if request.method == 'POST':
+        try:
+            intern_id = request.POST.get('intern_id')
+            intern = Intern.objects.get(id=intern_id)
+
+            # Обработка удаления резюме
+            if 'delete_resume' in request.POST:
+                if intern.resume:
+                    intern.resume.delete()
+                intern.resume = None
+                intern.save()
+                return JsonResponse({'success': True})
+
+            # Обработка загрузки нового резюме
+            if 'resume_file' in request.FILES:
+                # Удаляем старое резюме, если оно есть
+                if intern.resume:
+                    intern.resume.delete()
+
+                # Сохраняем новое резюме
+                intern.resume = request.FILES['resume_file']
+                intern.save()
+                return JsonResponse({'success': True})
+
+            return JsonResponse({'success': False, 'error': 'No file provided'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+
 # Вывод данных пользователя из сессии
 def account(request):
     if not request.session.get('email'):
@@ -739,14 +675,63 @@ def account(request):
 
     user = Account.objects.get(email=request.session.get('email'))
     intern = Intern.objects.filter(email=user.email).first()
+    all_tags = Tag.objects.all()  # Получаем все существующие теги
 
     if intern:
-        # Фильтруем документы через связанные модели: Document -> Practice -> Group
         documents = Document.objects.filter(practice__groups=intern.group)
+        org_supervisor = OrganizationSupervisor.objects.filter(organization=intern.organization).first()
     else:
         documents = []
+        org_supervisor = None
 
-    return render(request, 'doc/account.html', {'documents': documents})
+    context = {
+        'intern': intern,
+        'documents': documents,
+        'org_supervisor': org_supervisor,
+        'all_tags': all_tags,  # Передаем все теги в шаблон
+    }
+    return render(request, 'doc/account.html', context)
+
+
+@csrf_exempt
+def change_student_email(request):
+    if request.method == 'POST':
+        try:
+            current_email = request.POST.get('current_email')
+            new_email = request.POST.get('new_email')
+            password = request.POST.get('confirm_password')
+
+            # Проверяем, что пользователь авторизован
+            if not request.session.get('email') or request.session.get('email') != current_email:
+                return JsonResponse({'success': False, 'error': 'Недостаточно прав для изменения email.'})
+
+            # Получаем аккаунт студента
+            account = Account.objects.get(email=current_email)
+
+            # Проверяем пароль
+            if not account.check_password(password):
+                return JsonResponse({'success': False, 'error': 'Неверный пароль.'})
+
+            # Проверяем, что новый email не занят
+            if Account.objects.filter(email=new_email).exists():
+                return JsonResponse({'success': False, 'error': 'Этот email уже используется.'})
+
+            # Обновляем email в аккаунте
+            account.email = new_email
+            account.save()
+
+            # Обновляем email в модели Intern, если она существует
+            intern = Intern.objects.filter(email=current_email).first()
+            if intern:
+                intern.email = new_email
+                intern.save()
+
+            return JsonResponse({'success': True})
+        except Account.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Аккаунт не найден.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Недопустимый метод запроса.'})
 
 
 @csrf_exempt
@@ -781,6 +766,112 @@ def send_passwords_to_all_students(request):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+@csrf_exempt
+def send_interview_invitation(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Метод не разрешен'}, status=405)
+
+    try:
+        # Проверка авторизации организации
+        if not request.session.get('role') == 'Организация':
+            return JsonResponse(
+                {'success': False, 'message': 'Только организации могут отправлять приглашения'},
+                status=403
+            )
+
+        data = json.loads(request.body)
+
+        # Проверяем обязательные поля
+        required_fields = ['intern_id', 'interview_date', 'interview_location']
+        for field in required_fields:
+            if field not in data:
+                return JsonResponse(
+                    {'success': False, 'message': f'Отсутствует обязательное поле: {field}'},
+                    status=400
+                )
+
+        # Получаем данные студента
+        intern = Intern.objects.get(id=data['intern_id'])
+        if not intern.email:
+            return JsonResponse(
+                {'success': False, 'message': 'У студента не указан email'},
+                status=400
+            )
+
+        # Получаем аккаунт организации
+        org_account = Account.objects.get(email=request.session['email'])
+
+        # Проверяем валидность email-адресов
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+
+        try:
+            validate_email(intern.email)
+            validate_email(org_account.email)
+        except ValidationError as e:
+            return JsonResponse(
+                {'success': False, 'message': f'Некорректный email-адрес: {str(e)}'},
+                status=400
+            )
+
+        # Преобразуем строку даты в datetime с часовым поясом
+        from django.utils.timezone import make_aware
+        from datetime import datetime
+        naive_datetime = datetime.strptime(data['interview_date'], '%Y-%m-%dT%H:%M')
+        aware_datetime = make_aware(naive_datetime)
+
+        # Создаем приглашение
+        invitation = InterviewInvitation.objects.create(
+            intern=intern,
+            interview_date=aware_datetime,
+            location=data['interview_location'],
+            message=data.get('interview_message', ''),
+            created_by=org_account
+        )
+
+        # Форматируем дату для письма
+        formatted_date = aware_datetime.strftime('%d.%m.%Y в %H:%M')
+
+        # Отправляем письмо
+        context = {
+            'intern': intern,
+            'invitation': invitation,
+            'formatted_date': formatted_date,
+            'sender_email': settings.EMAIL_HOST_USER,  # Используем EMAIL_HOST_USER
+            'sender_name': f"{org_account.surname} {org_account.name}"
+        }
+
+        text_content = render_to_string('emails/interview_invitation.txt', context)
+        html_content = render_to_string('emails/interview_invitation.html', context)
+
+        email = EmailMultiAlternatives(
+            subject=f'Приглашение на собеседование от {context["sender_name"]}',
+            body=text_content,
+            from_email=settings.EMAIL_HOST_USER,  # Отправляем с EMAIL_HOST_USER
+            to=[intern.email],
+            reply_to=[org_account.email]  # Для ответов используем email организации
+        )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=False)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Приглашение успешно отправлено',
+            'invitation_id': invitation.id
+        })
+
+    except Intern.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Студент не найден'}, status=404)
+    except Account.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Аккаунт организации не найден'}, status=404)
+    except Exception as e:
+        logger.error(f"Ошибка при отправке приглашения: {str(e)}", exc_info=True)
+        return JsonResponse(
+            {'success': False, 'message': f'Ошибка при отправке приглашения: {str(e)}'},
+            status=500
+        )
 
 
 @csrf_exempt

@@ -25,6 +25,7 @@ urlpatterns = [
     # Органиции
     path('organization_list/', v.organizations_list, name='organizations_list'),
     path('organization_index/', v.organizer_index, name='organizations_index'),
+    path('send_interview_invitation/', v.send_interview_invitation, name='send_interview_invitation'),
 
     # Руководитель практики
     path('documents_page/', v.documents_page, name='documents_page'),
@@ -58,4 +59,7 @@ urlpatterns = [
     path('send-passwords-to-all-students/', v.send_passwords_to_all_students, name='send_passwords_to_all_students'),
     # path('fill_document_data/<int:document_id>/', v.fill_document_data, name='fill_document_data'),
     path('documents/<int:document_id>/download/', v.download_filled_document, name='download_filled_document'),
+    path('update-skills/', v.update_intern_skills, name='update_intern_skills'),
+    path('upload-resume/', v.upload_intern_resume, name='upload_intern_resume'),
+    path('change-email/', v.change_student_email, name='change_student_email'),
 ]

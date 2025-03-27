@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
@@ -18,7 +19,8 @@ class Role(models.Model):
 
 
 class DocumentLinks(models.Model):
-    account = models.ForeignKey('Account', on_delete=models.CASCADE, related_name='document_links', verbose_name="Аккаунт")
+    account = models.ForeignKey('Account', on_delete=models.CASCADE, related_name='document_links',
+                                verbose_name="Аккаунт")
     document_link = models.URLField(verbose_name="Ссылка на документ")
 
     def __str__(self):
@@ -44,7 +46,7 @@ class Account(models.Model):
     patronymic = models.CharField(max_length=50, blank=True, null=True, verbose_name="Отчество")
     role = models.ForeignKey(Role, on_delete=models.PROTECT, verbose_name='Роль')
     email_sent = models.BooleanField(default=False, verbose_name="Письмо отправлено")
-    managed_groups = models.ManyToManyField('Group', null=True, blank=True, verbose_name="Управляемые группы")
+    managed_groups = models.ManyToManyField('Group', blank=True, verbose_name="Управляемые группы")
 
     def set_password(self, raw_password):
         self.salt_password = get_random_string(length=16)
@@ -131,6 +133,7 @@ class Intern(models.Model):
                                      verbose_name="Организация")
     tags = models.ManyToManyField(Tag, blank=True, verbose_name="Теги")
     resume = models.FileField(upload_to='resumes/', blank=True, null=True, verbose_name="Резюме")
+
     # resume_access_granted = models.BooleanField(default=False, verbose_name="Доступ к резюме")
 
     # def validate_phone_number(self):
@@ -140,53 +143,104 @@ class Intern(models.Model):
     # def clean(self):
     #     self.validate_phone_number()
 
+    @property
+    def interview_invitations(self):
+        return InterviewInvitation.objects.filter(intern=self).order_by('-created_at')
+
     def request_resume_access(self):
-        if not self.resume_access_granted:
+        if not self.resume:
             self.resume_access_granted = True
             self.save()
             return True
         return False
 
     def save(self, *args, **kwargs):
-        # Если это существующий объект (редактирование)
+        # Если email был изменен
         if self.pk:
             old_intern = Intern.objects.get(pk=self.pk)
-            # Если email был изменен
             if old_intern.email != self.email:
-                # Удаляем старый аккаунт, если он существует
-                Account.objects.filter(email=old_intern.email).delete()
-
-        # Если email был изменен или добавлен
-        if self.email:
-            if not self.pk:  # Проверяем, что это новый объект
-                # Создаем аккаунт для студента
-                account = Account.objects.create(
-                    email=self.email,
-                    surname=self.last_name,
-                    name=self.first_name,
-                    patronymic=self.middle_name,
-                    role=Role.objects.get(name='Студент'),
-                    password='temporary_password',  # Временный пароль
-                    email_sent=False  # Письмо еще не отправлено
-                )
-                account.generate_and_send_password()  # Генерация и отправка пароля
-                Student.objects.create(account=account, is_intern=True)  # Создаем запись студента
-            else:
-                # Если это существующий объект, проверяем, изменился ли email
-                old_intern = Intern.objects.get(pk=self.pk)
-                if old_intern.email != self.email:
-                    # Обновляем email в аккаунте
-                    account = Account.objects.filter(email=old_intern.email).first()
-                    if account:
-                        account.email = self.email
-                        account.email_sent = False  # Сбрасываем флаг, так как email изменился
-                        account.save()
-                        account.generate_and_send_password()  # Генерация и отправка нового пароля
+                # Обновляем связанный аккаунт
+                account = Account.objects.filter(email=old_intern.email).first()
+                if account:
+                    account.email = self.email
+                    account.save()
 
         super().save(*args, **kwargs)
 
+        # # Если это существующий объект (редактирование)
+        # if self.pk:
+        #     old_intern = Intern.objects.get(pk=self.pk)
+        #     # Если email был изменен
+        #     if old_intern.email != self.email:
+        #         # Удаляем старый аккаунт, если он существует
+        #         Account.objects.filter(email=old_intern.email).delete()
+        #
+        # # Если email был изменен или добавлен
+        # if self.email:
+        #     if not self.pk:  # Проверяем, что это новый объект
+        #         # Создаем аккаунт для студента
+        #         account = Account.objects.create(
+        #             email=self.email,
+        #             surname=self.last_name,
+        #             name=self.first_name,
+        #             patronymic=self.middle_name,
+        #             role=Role.objects.get(name='Студент'),
+        #             password='temporary_password',  # Временный пароль
+        #             email_sent=False  # Письмо еще не отправлено
+        #         )
+        #         account.generate_and_send_password()  # Генерация и отправка пароля
+        #         Student.objects.create(account=account, is_intern=True)  # Создаем запись студента
+        #     else:
+        #         # Если это существующий объект, проверяем, изменился ли email
+        #         old_intern = Intern.objects.get(pk=self.pk)
+        #         if old_intern.email != self.email:
+        #             # Обновляем email в аккаунте
+        #             account = Account.objects.filter(email=old_intern.email).first()
+        #             if account:
+        #                 account.email = self.email
+        #                 account.email_sent = False  # Сбрасываем флаг, так как email изменился
+        #                 account.save()
+        #                 account.generate_and_send_password()  # Генерация и отправка нового пароля
+        #
+        # super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.last_name} {self.first_name} - {self.group.name}"
+
+
+class InterviewInvitation(models.Model):
+    intern = models.ForeignKey(Intern, on_delete=models.CASCADE, related_name='invitations')
+    interview_date = models.DateTimeField(verbose_name="Дата собеседования")
+    location = models.TextField(verbose_name="Место проведения")
+    message = models.TextField(blank=True, verbose_name="Дополнительное сообщение")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    is_accepted = models.BooleanField(null=True, blank=True, verbose_name="Принято")
+    response_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата ответа")
+    created_by = models.ForeignKey(
+        'Account',  # Изменено с User на Account
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Отправитель"
+    )
+    status_changed = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Дата изменения статуса"
+    )
+
+    def save(self, *args, **kwargs):
+        # Обновляем дату изменения статуса при его изменении
+        if self.pk and self.is_accepted != InterviewInvitation.objects.get(pk=self.pk).is_accepted:
+            self.status_changed = timezone.now()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Приглашение для {self.intern} на {self.interview_date}"
+
+    class Meta:
+        verbose_name = "Приглашение на собеседование"
+        verbose_name_plural = "Приглашения на собеседование"
 
 
 class Student(models.Model):
@@ -248,7 +302,8 @@ class CollegeSupervisor(models.Model):
     position = models.CharField(max_length=100, verbose_name="Должность")
 
     def validate_name(self):
-        if not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.last_name) or not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.first_name):
+        if not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.last_name) or not re.match(r"^[A-Za-zА-Яа-яЁё]+$",
+                                                                                self.first_name):
             raise ValidationError("Фамилия и имя должны содержать только буквы")
 
     def clean(self):
@@ -270,7 +325,7 @@ class Organization(models.Model):
     kpp = models.CharField(max_length=9, blank=True, null=True, verbose_name="КПП")
     ogrn = models.CharField(max_length=13, blank=True, null=True, verbose_name="ОГРН")
     phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Номер телефона")
-    email = models.EmailField(blank=True, null=True,verbose_name="Электронная почта")
+    email = models.EmailField(blank=True, null=True, verbose_name="Электронная почта")
     is_approved = models.BooleanField(default=False, verbose_name="Подтверждено")
     password = models.CharField(max_length=128, verbose_name="Пароль", blank=True, null=True)
     is_registration_request = models.BooleanField(default=False, verbose_name="Заявка на регистрацию")
@@ -330,7 +385,8 @@ class OrganizationSupervisor(models.Model):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, verbose_name="Организация")
 
     def validate_name(self):
-        if not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.last_name) or not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.first_name):
+        if not re.match(r"^[A-Za-zА-Яа-яЁё]+$", self.last_name) or not re.match(r"^[A-Za-zА-Яа-яЁё]+$",
+                                                                                self.first_name):
             raise ValidationError("Фамилия и имя должны содержать только буквы")
 
     def validate_phone_number(self):

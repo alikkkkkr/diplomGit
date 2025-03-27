@@ -1,0 +1,16 @@
+Здравствуйте, {{ intern.first_name }} {{ intern.last_name }}!
+
+{{ sender_name }} приглашает вас на собеседование:
+
+Дата: {{ formatted_date }}
+Место: {{ invitation.location }}
+
+{% if invitation.message %}
+Дополнительная информация:
+{{ invitation.message }}
+{% endif %}
+
+Для связи с отправителем: {{ sender_email }}
+
+С уважением,
+Команда практики
