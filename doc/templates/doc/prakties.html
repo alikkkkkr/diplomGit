@@ -1,185 +1,461 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="container">
-        <h2>Управление практиками, графиками и группами</h2>
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-calendar-alt me-2 text-primary"></i>Управление практиками и группами
+        </h2>
+    </div>
 
-        <!-- Навигационные вкладки -->
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item">
-                <a class="nav-link active" data-bs-toggle="tab" href="#practices">Практики</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#schedules">Графики</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" data-bs-toggle="tab" href="#groups">Группы</a>
-            </li>
-        </ul>
+    <!-- Навигационные вкладки -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-4" id="myTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="practices-tab" data-bs-toggle="tab" data-bs-target="#practices" type="button" role="tab">
+                <i class="fas fa-briefcase me-2"></i>Практики
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="schedules-tab" data-bs-toggle="tab" data-bs-target="#schedules" type="button" role="tab">
+                <i class="fas fa-calendar-day me-2"></i>Графики
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="groups-tab" data-bs-toggle="tab" data-bs-target="#groups" type="button" role="tab">
+                <i class="fas fa-users me-2"></i>Группы
+            </button>
+        </li>
+    </ul>
 
-        <!-- Содержимое вкладок -->
-        <div class="tab-content">
-            <!-- Вкладка "Практики" -->
-            <div class="tab-pane fade show active" id="practices">
-                <h3>Добавить новую практику</h3>
-                <form method="post" action="{% url 'add_practice' %}">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_pp">Производственная практика</label>
-                        <input type="text" name="pp" id="id_pp" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_pm">Профессиональный модуль</label>
-                        <input type="text" name="pm" id="id_pm" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_preddiplom">Преддипломная практика</label>
-                        <input type="checkbox" name="preddiplom" id="id_preddiplom" class="form-check-input"
-                               style="width: auto">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_schedule">График практики</label>
-                        <select name="schedule" id="id_schedule" class="form-control">
-                            {% for schedule in schedules %}
-                                <option value="{{ schedule.id }}">{{ schedule.schedule_description }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="id_hours">Количество часов</label>
-                        <input type="number" name="hours" id="id_hours" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="id_groups">Группы</label>
-                        <select name="groups" id="id_groups" class="form-control" multiple>
-                            {% for group in groups %}
-                                <option value="{{ group.id }}">{{ group.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-dark">Добавить практику</button>
-                </form>
+    <!-- Содержимое вкладок -->
+    <div class="tab-content" id="myTabContent">
+        <!-- Вкладка "Практики" -->
+        <div class="tab-pane fade show active" id="practices" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2 text-success"></i>Добавить новую практику
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'add_practice' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_pp" class="form-label">
+                                    <i class="fas fa-industry me-2 text-muted"></i>Производственная практика
+                                </label>
+                                <input type="text" name="pp" id="id_pp" class="form-control" placeholder="Введите название">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_pm" class="form-label">
+                                    <i class="fas fa-tasks me-2 text-muted"></i>Профессиональный модуль
+                                </label>
+                                <input type="text" name="pm" id="id_pm" class="form-control" placeholder="Введите название">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_schedule" class="form-label">
+                                    <i class="fas fa-calendar me-2 text-muted"></i>График практики
+                                </label>
+                                <select name="schedule" id="id_schedule" class="form-select">
+                                    {% for schedule in schedules %}
+                                        <option value="{{ schedule.id }}">{{ schedule.schedule_description }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_hours" class="form-label">
+                                    <i class="fas fa-clock me-2 text-muted"></i>Количество часов
+                                </label>
+                                <input type="number" name="hours" id="id_hours" class="form-control" placeholder="Введите количество">
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="preddiplom" id="id_preddiplom">
+                                    <label class="form-check-label" for="id_preddiplom">
+                                        <i class="fas fa-graduation-cap me-2 text-muted"></i>Преддипломная практика
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <label for="id_groups" class="form-label">
+                                    <i class="fas fa-users me-2 text-muted"></i>Группы
+                                </label>
+                                <select name="groups" id="id_groups" class="form-select" multiple>
+                                    {% for group in groups %}
+                                        <option value="{{ group.id }}">{{ group.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Сохранить практику
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
 
-                <h3 class="mt-4">Список практик</h3>
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>Тип практики</th>
-                        <th>График</th>
-                        <th>Часы</th>
-                        <th>Группа</th>
-                        <th>Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for practice in practices %}
-                        <tr>
-                            <td>
-                                {% if practice.pp %}
-                                    {{ practice.pp }}
-                                {% elif practice.pm %}
-                                    {{ practice.pm }}
-                                {% elif practice.preddiplom %}
-                                    Преддипломная
-                                {% endif %}
-                            </td>
-                            <td>{{ practice.schedule.schedule_description }}</td>
-                            <td>{{ practice.hours }}</td>
-                            <td>
-                                {% for group in practice.groups.all %}
-                                    {{ group.name }}{% if not forloop.last %}, {% endif %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ul me-2 text-primary"></i>Список практик
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4"><i class="fas fa-briefcase me-2"></i>Тип практики</th>
+                                    <th><i class="fas fa-calendar me-2"></i>График</th>
+                                    <th><i class="fas fa-clock me-2"></i>Часы</th>
+                                    <th><i class="fas fa-users me-2"></i>Группы</th>
+                                    <th class="text-end pe-4"><i class="fas fa-cog me-2"></i>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for practice in practices %}
+                                <tr>
+                                    <td class="ps-4">
+                                        {% if practice.pp %}
+                                            <span class="badge bg-primary bg-opacity-10 text-primary">{{ practice.pp }}</span>
+                                        {% elif practice.pm %}
+                                            <span class="badge bg-info bg-opacity-10 text-info">{{ practice.pm }}</span>
+                                        {% elif practice.preddiplom %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger">Преддипломная</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ practice.schedule.schedule_description }}</td>
+                                    <td>{{ practice.hours }}</td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for group in practice.groups.all %}
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                                {{ group.name }}
+                                            </span>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'edit_practice' practice.id %}" class="btn btn-sm btn-outline-primary"
+                                               data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'delete_practice' practice.id %}" class="btn btn-sm btn-outline-danger"
+                                               data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет добавленных практик</p>
+                                    </td>
+                                </tr>
                                 {% endfor %}
-                            </td>
-                            <td>
-                                <a href="{% url 'edit_practice' practice.id %}" class="btn btn-dark btn-sm">Редактировать</a>
-                                <a href="{% url 'delete_practice' practice.id %}"
-                                   class="btn btn-danger btn-sm">Удалить</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка "Графики" -->
+        <div class="tab-pane fade" id="schedules" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2 text-success"></i>Добавить новый график
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'add_schedule' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label for="id_schedule_description" class="form-label">
+                                    <i class="fas fa-calendar-day me-2 text-muted"></i>Описание графика
+                                </label>
+                                <input type="text" name="schedule_description" id="id_schedule_description"
+                                       class="form-control" placeholder="Например: 5 дней в неделю, 8 часов">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Сохранить график
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <!-- Вкладка "Графики" -->
-            <div class="tab-pane fade" id="schedules">
-                <h3>Добавить новый график</h3>
-                <form method="post" action="{% url 'add_schedule' %}">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_schedule_description">Описание графика</label>
-                        <input type="text" name="schedule_description" id="id_schedule_description"
-                               class="form-control">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ul me-2 text-primary"></i>Список графиков
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4"><i class="fas fa-calendar-day me-2"></i>Описание графика</th>
+                                    <th class="text-end pe-4"><i class="fas fa-cog me-2"></i>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                <tr>
+                                    <td class="ps-4">{{ schedule.schedule_description }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'edit_schedule' schedule.id %}" class="btn btn-sm btn-outline-primary"
+                                               data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'delete_schedule' schedule.id %}" class="btn btn-sm btn-outline-danger"
+                                               data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-4 text-muted">
+                                        <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет добавленных графиков</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <button type="submit" class="btn btn-dark">Добавить график</button>
-                </form>
+                </div>
+            </div>
+        </div>
 
-                <h3 class="mt-4">Список графиков</h3>
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>Описание графика</th>
-                        <th>Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for schedule in schedules %}
-                        <tr>
-                            <td>{{ schedule.schedule_description }}</td>
-                            <td>
-                                <a href="{% url 'edit_schedule' schedule.id %}" class="btn btn-dark btn-sm">Редактировать</a>
-                                <a href="{% url 'delete_schedule' schedule.id %}"
-                                   class="btn btn-danger btn-sm">Удалить</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Вкладка "Группы" -->
+        <div class="tab-pane fade" id="groups" role="tabpanel">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus-circle me-2 text-success"></i>Добавить новую группу
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'add_group' %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_name" class="form-label">
+                                    <i class="fas fa-users me-2 text-muted"></i>Название группы
+                                </label>
+                                <input type="text" name="name" id="id_name" class="form-control" placeholder="Например: П50-1-21">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_specialty" class="form-label">
+                                    <i class="fas fa-graduation-cap me-2 text-muted"></i>Специальность
+                                </label>
+                                <select name="specialty" id="id_specialty" class="form-select">
+                                    {% for specialty in specialties %}
+                                        <option value="{{ specialty.id }}">{{ specialty.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Сохранить группу
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            <!-- Вкладка "Группы" -->
-            <div class="tab-pane fade" id="groups">
-                <h3>Добавить новую группу</h3>
-                <form method="post" action="{% url 'add_group' %}">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="id_name">Название группы</label>
-                        <input type="text" name="name" id="id_name" class="form-control">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ul me-2 text-primary"></i>Список групп
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4"><i class="fas fa-users me-2"></i>Название группы</th>
+                                    <th><i class="fas fa-graduation-cap me-2"></i>Специальность</th>
+                                    <th class="text-end pe-4"><i class="fas fa-cog me-2"></i>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in groups %}
+                                <tr>
+                                    <td class="ps-4">{{ group.name }}</td>
+                                    <td>{{ group.specialty.name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'edit_group' group.id %}" class="btn btn-sm btn-outline-primary"
+                                               data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'delete_group' group.id %}" class="btn btn-sm btn-outline-danger"
+                                               data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">
+                                        <i class="fas fa-folder-open fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет добавленных групп</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="form-group">
-                        <label for="id_specialty">Специальность</label>
-                        <select name="specialty" id="id_specialty" class="form-control">
-                            {% for specialty in specialties %}
-                                <option value="{{ specialty.id }}">{{ specialty.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-dark">Добавить группу</button>
-                </form>
-
-                <h3 class="mt-4">Список групп</h3>
-                <table class="table table-bordered">
-                    <thead>
-                    <tr>
-                        <th>Название группы</th>
-                        <th>Специальность</th>
-                        <th>Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for group in groups %}
-                        <tr>
-                            <td>{{ group.name }}</td>
-                            <td>{{ group.specialty.name }}</td>
-                            <td>
-                                <a href="{% url 'edit_group' group.id %}" class="btn btn-dark btn-sm">Редактировать</a>
-                                <a href="{% url 'delete_group' group.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Подключение Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    .nav-tabs-custom .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0;
+        position: relative;
+    }
+
+    .nav-tabs-custom .nav-link.active {
+        color: #0d6efd;
+        background-color: transparent;
+        border-bottom: 3px solid #0d6efd;
+    }
+
+    .nav-tabs-custom .nav-link:hover:not(.active) {
+        color: #0d6efd;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .card-header {
+        padding: 1rem 1.5rem;
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        border-top: none;
+    }
+
+    .table td, .table th {
+        vertical-align: middle;
+        padding: 1rem;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.03);
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+
+    .form-control, .form-select {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .btn-outline-primary {
+        color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .form-switch .form-check-input {
+        width: 2.5em;
+        height: 1.5em;
+    }
+</style>
+
+<script>
+    // Инициализация tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+
+        // Инициализация мультиселекта
+        if (document.getElementById('id_groups')) {
+            new Choices('#id_groups', {
+                removeItemButton: true,
+                searchEnabled: true,
+                placeholder: true,
+                placeholderValue: 'Выберите группы',
+                noResultsText: 'Группы не найдены',
+                noChoicesText: 'Нет доступных групп',
+                itemSelectText: 'Нажмите для выбора'
+            });
+        }
+    });
+</script>
 {% endblock %}

@@ -22,6 +22,14 @@ from docx import Document as DocxDocument
 def upload_interns(request):
     if request.method == 'POST' and request.FILES.get('excel_file'):
         try:
+            # Проверка авторизации пользователя
+            if not request.session.get('email'):
+                messages.error(request, "Для загрузки файла необходимо авторизоваться")
+                return redirect('authPage')
+
+            # Получаем текущего пользователя
+            user = Account.objects.get(email=request.session['email'])
+
             # Чтение файла Excel
             excel_file = request.FILES['excel_file']
             df = pd.read_excel(excel_file, sheet_name=None)  # Читаем все листы
@@ -30,6 +38,16 @@ def upload_interns(request):
                 # Извлекаем название группы из имени листа
                 group_name_full = sheet_name.strip()  # Имя листа
                 group_name = group_name_full.replace("Группа ", "").strip()  # Убираем слово "Группа ", если есть
+
+                # Проверяем, существует ли уже такая группа
+                existing_group = Group.objects.filter(name=group_name).first()
+                if existing_group:
+                    # Если группа уже существует, проверяем, привязана ли она к пользователю
+                    if user.role.name == 'Руководитель практики' and existing_group not in user.managed_groups.all():
+                        user.managed_groups.add(existing_group)
+                        user.save()
+                        messages.info(request, f"Группа {group_name} уже существует и была добавлена к вашему профилю")
+                    continue  # Пропускаем обработку существующей группы
 
                 # Определяем код специальности на основе названия группы
                 specialty_code = None
@@ -43,8 +61,14 @@ def upload_interns(request):
                 if not specialty:
                     raise ValueError(f"Специальность с кодом '{specialty_code}' не найдена в базе данных.")
 
-                # Находим или создаем группу с привязкой к специальности
-                group, _ = Group.objects.get_or_create(name=group_name, defaults={'specialty': specialty})
+                # Создаем новую группу с привязкой к специальности
+                group = Group.objects.create(name=group_name, specialty=specialty)
+
+                # Если пользователь - руководитель практики, добавляем группу к его управляемым группам
+                if user.role.name == 'Руководитель практики':
+                    user.managed_groups.add(group)
+                    user.save()
+                    messages.success(request, f"Группа {group_name} создана и добавлена к вашему профилю")
 
                 # Явно указываем индексы столбцов
                 column_mapping = {
@@ -166,12 +190,25 @@ def organizer_index(request):
     if not request.session.get('email'):
         return redirect('authPage')
 
+    # Получаем текущего пользователя
+    try:
+        user = Account.objects.get(email=request.session['email'])
+    except Account.DoesNotExist:
+        return redirect('authPage')
+
+    # Получаем организацию, если пользователь - организация
+    organization = None
+    if user.role.name == 'Организация' and hasattr(user, 'organization'):
+        organization = user.organization
+
     # Получение списка практикантов
     interns = Intern.objects.all()
 
     # Формирование контекста
     context = {
         "interns": interns,
+        "organization": organization,  # Добавляем организацию в контекст
+        "user": user,  # Добавляем пользователя в контекст
     }
 
     return render(request, 'doc/organizer_index.html', context)
@@ -600,6 +637,165 @@ def approve_organization(request, organization_id):
         else:
             return JsonResponse({'success': False, 'message': 'Организация уже подтверждена.'})
     return JsonResponse({'success': False, 'message': 'Недопустимый метод запроса.'})
+
+
+def organization_detail(request, organization_id):
+    # Проверка авторизации
+    if not request.session.get('email'):
+        return redirect('authPage')
+
+    # Получение организации
+    organization = get_object_or_404(Organization, id=organization_id)
+
+    # Получение руководителя организации
+    supervisor = OrganizationSupervisor.objects.filter(organization=organization).first()
+
+    # Получение студентов, связанных с организацией
+    interns = Intern.objects.filter(organization=organization)
+
+    # Проверка прав доступа
+    user = Account.objects.get(email=request.session['email'])
+    is_organization_admin = (user.role.name == 'Организация' and
+                             request.session.get('organization_id') == organization.id)
+    is_admin = user.role.name == 'Администратор'
+
+    if not (is_organization_admin or is_admin):
+        messages.error(request, 'У вас нет прав для просмотра этой страницы')
+        return redirect('index')
+
+    context = {
+        'organization': organization,
+        'supervisor': supervisor,
+        'interns': interns,
+        'can_edit': is_organization_admin or is_admin,
+    }
+
+    return render(request, 'doc/organization_detail.html', context)
+
+
+@csrf_exempt
+def update_organization(request, organization_id):
+    if request.method == 'POST':
+        try:
+            # Проверка авторизации
+            if not request.session.get('email'):
+                return JsonResponse({'success': False, 'error': 'Не авторизован'})
+
+            user = Account.objects.get(email=request.session['email'])
+            organization = get_object_or_404(Organization, id=organization_id)
+
+            # Проверка прав
+            is_organization_admin = (user.role.name == 'Организация' and
+                                     request.session.get('organization_id') == organization.id)
+            is_admin = user.role.name == 'Администратор'
+
+            if not (is_organization_admin or is_admin):
+                return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'})
+
+            data = json.loads(request.body)
+            field = data.get('field')
+            value = data.get('value')
+
+            # Запрещаем редактирование некоторых полей
+            if field in ['id', 'is_approved', 'is_registration_request']:
+                return JsonResponse({'success': False, 'error': 'Редактирование этого поля запрещено'})
+
+            # Обновляем поле
+            if hasattr(organization, field):
+                setattr(organization, field, value)
+                organization.save()
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Неверное поле'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+
+
+@csrf_exempt
+def update_supervisor(request, supervisor_id):
+    if request.method == 'POST':
+        try:
+            # Проверка авторизации
+            if not request.session.get('email'):
+                return JsonResponse({'success': False, 'error': 'Не авторизован'})
+
+            user = Account.objects.get(email=request.session['email'])
+            supervisor = get_object_or_404(OrganizationSupervisor, id=supervisor_id)
+
+            # Проверка прав
+            is_organization_admin = (user.role.name == 'Организация' and
+                                     request.session.get('organization_id') == supervisor.organization.id)
+            is_admin = user.role.name == 'Администратор'
+
+            if not (is_organization_admin or is_admin):
+                return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'})
+
+            data = json.loads(request.body)
+            field = data.get('field')
+            value = data.get('value')
+
+            # Запрещаем редактирование некоторых полей
+            if field in ['id', 'organization']:
+                return JsonResponse({'success': False, 'error': 'Редактирование этого поля запрещено'})
+
+            # Обновляем поле
+            if hasattr(supervisor, field):
+                setattr(supervisor, field, value)
+                supervisor.save()
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Неверное поле'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+
+
+def edit_organization(request, organization_id):
+    # Проверка авторизации
+    if not request.session.get('email'):
+        return redirect('authPage')
+
+    user = Account.objects.get(email=request.session['email'])
+    organization = get_object_or_404(Organization, id=organization_id)
+
+    # Проверка прав
+    is_organization_admin = (user.role.name == 'Организация' and
+                             request.session.get('organization_id') == organization.id)
+    is_admin = user.role.name == 'Администратор'
+
+    if not (is_organization_admin or is_admin):
+        messages.error(request, 'У вас нет прав для редактирования этой организации')
+        return redirect('index')
+
+    supervisor = OrganizationSupervisor.objects.filter(organization=organization).first()
+
+    if request.method == 'POST':
+        org_form = OrganizationForm(request.POST, instance=organization)
+        supervisor_form = OrganizationSupervisorForm(request.POST, instance=supervisor)
+
+        if org_form.is_valid() and supervisor_form.is_valid():
+            org_form.save()
+            sup = supervisor_form.save(commit=False)
+            sup.organization = organization
+            sup.save()
+            messages.success(request, 'Данные успешно обновлены')
+            return redirect('organization_detail', organization_id=organization.id)
+    else:
+        org_form = OrganizationForm(instance=organization)
+        supervisor_form = OrganizationSupervisorForm(instance=supervisor)
+
+    context = {
+        'organization': organization,
+        'org_form': org_form,
+        'supervisor_form': supervisor_form,
+    }
+
+    return render(request, 'doc/edit_organization.html', context)
 
 
 def student_index(request):

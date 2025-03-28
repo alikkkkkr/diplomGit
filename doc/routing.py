@@ -23,9 +23,15 @@ urlpatterns = [
     path('request_resume_access/<int:intern_id>/', v.request_resume_access, name='request_resume_access'),
 
     # Органиции
+    path('organization/<int:organization_id>/', v.organization_detail, name='organization_detail'),
+    path('organizer/', v.organizer_index, name='organizer_index'),
     path('organization_list/', v.organizations_list, name='organizations_list'),
     path('organization_index/', v.organizer_index, name='organizations_index'),
     path('send_interview_invitation/', v.send_interview_invitation, name='send_interview_invitation'),
+    path('organization/<int:organization_id>/', v.organization_detail, name='organization_detail'),
+    path('organization/<int:organization_id>/update/', v.update_organization, name='update_organization'),
+    path('supervisor/<int:supervisor_id>/update/', v.update_supervisor, name='update_supervisor'),
+    path('organization/<int:organization_id>/edit/', v.edit_organization, name='edit_organization'),
 
     # Руководитель практики
     path('documents_page/', v.documents_page, name='documents_page'),

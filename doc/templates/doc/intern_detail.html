@@ -87,36 +87,31 @@
                     </div>
                 {% endif %}
 
-                <!-- Resume Section -->
-                {% if intern.resume %}
-                    <div class="mb-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-file-alt me-2 text-primary"></i>
-                            Резюме
-                        </h5>
-                        <div class="d-flex align-items-center gap-3">
-                            {% if intern.resume_access_granted %}
-                                <a href="{{ intern.resume.url }}"
-                                   class="btn btn-outline-primary"
-                                   target="_blank"
-                                   download>
-                                    <i class="fas fa-download me-2"></i>Скачать резюме
-                                </a>
-                                <a href="{{ intern.resume.url }}"
-                                   class="btn btn-outline-secondary"
-                                   target="_blank">
-                                    <i class="fas fa-eye me-2"></i>Просмотреть
-                                </a>
-                            {% else %}
-                                <button id="request-resume-btn"
-                                        class="btn btn-primary"
-                                        data-intern-id="{{ intern.id }}">
-                                    <i class="fas fa-envelope me-2"></i>Запросить доступ к резюме
-                                </button>
-                            {% endif %}
-                        </div>
+                <!-- Секция резюме -->
+                <div class="card mb-4 resume-section">
+                    <div class="card-header">
+                        <i class="fas fa-file-contract"></i>
+                        <span>Резюме</span>
                     </div>
-                {% endif %}
+                    <div class="card-body">
+                        {% if intern.resume %}
+                            <div class="resume-preview">
+                                <i class="fas fa-file-pdf"></i>
+                                <a href="{{ intern.resume.url }}" target="_blank" class="btn btn-account-primary">
+                                    <i class="fas fa-eye"></i> Просмотреть резюме
+                                </a>
+                                <a href="{{ intern.resume.url }}" download class="btn btn-download">
+                                    <i class="fas fa-download"></i> Скачать
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-file-upload"></i>
+                                <p class="text-muted">Резюме не загружено</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
 
                 <!-- Interview Request Section - Only for Organization role -->
                 {% if request.session.role == 'Организация' and intern.email %}

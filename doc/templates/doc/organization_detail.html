@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ organization.full_name }}</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Основная информация</h4>
+            {% if can_edit %}
+            <a href="{% url 'edit_organization' organization.id %}" class="btn btn-primary btn-sm float-right">Редактировать</a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Юридический адрес:</strong> <span id="legal_address">{{ organization.legal_address|default:"Не указан" }}</span></p>
+                    <p><strong>Фактический адрес:</strong> <span id="actual_address">{{ organization.actual_address|default:"Не указан" }}</span></p>
+                    <p><strong>ИНН:</strong> {{ organization.inn|default:"Не указан" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>КПП:</strong> {{ organization.kpp|default:"Не указан" }}</p>
+                    <p><strong>ОГРН:</strong> {{ organization.ogrn|default:"Не указан" }}</p>
+                    <p><strong>Телефон:</strong> <span id="phone_number">{{ organization.phone_number|default:"Не указан" }}</span></p>
+                    <p><strong>Email:</strong> <span id="email">{{ organization.email|default:"Не указан" }}</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Руководитель организации</h4>
+        </div>
+        <div class="card-body">
+            {% if supervisor %}
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ФИО:</strong> 
+                        <span id="supervisor_last_name">{{ supervisor.last_name }}</span>
+                        <span id="supervisor_first_name">{{ supervisor.first_name }}</span>
+                        <span id="supervisor_middle_name">{{ supervisor.middle_name|default:"" }}</span>
+                    </p>
+                    <p><strong>Должность:</strong> <span id="supervisor_position">{{ supervisor.position }}</span></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Телефон:</strong> <span id="supervisor_phone_number">{{ supervisor.phone_number }}</span></p>
+                </div>
+            </div>
+            {% else %}
+            <p>Руководитель не указан</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h4>Студенты, проходящие практику</h4>
+        </div>
+        <div class="card-body">
+            {% if interns %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ФИО</th>
+                            <th>Группа</th>
+                            <th>Телефон</th>
+                            <th>Email</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for intern in interns %}
+                        <tr>
+                            <td>
+                                {{ intern.last_name }} {{ intern.first_name }} {{ intern.middle_name|default:"" }}
+                            </td>
+                            <td>{{ intern.group.name }}</td>
+                            <td>{{ intern.phone_number|default:"Не указан" }}</td>
+                            <td>{{ intern.email|default:"Не указан" }}</td>
+                            <td>
+                                <a href="{% url 'intern_detail' intern.id %}" class="btn btn-info btn-sm">Просмотр</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>Нет студентов, связанных с этой организацией</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if can_edit %}
+<script>
+// JavaScript для редактирования полей организации
+document.addEventListener('DOMContentLoaded', function() {
+    // Функция для редактирования полей
+    function makeEditable(fieldId, endpoint) {
+        const element = document.getElementById(fieldId);
+        if (!element) return;
+        
+        element.addEventListener('dblclick', function() {
+            const currentValue = this.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue;
+            input.className = 'form-control';
+            
+            this.textContent = '';
+            this.appendChild(input);
+            input.focus();
+            
+            input.addEventListener('blur', function() {
+                const newValue = this.value.trim();
+                const parent = this.parentElement;
+                parent.textContent = newValue || 'Не указан';
+                
+                // Отправка данных на сервер
+                if (newValue !== currentValue) {
+                    fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            field: fieldId,
+                            value: newValue
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert('Ошибка при сохранении: ' + data.error);
+                            parent.textContent = currentValue;
+                        }
+                    });
+                }
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    this.blur();
+                }
+            });
+        });
+    }
+    
+    // Делаем поля редактируемыми
+    makeEditable('legal_address', '{% url "update_organization" organization.id %}');
+    makeEditable('actual_address', '{% url "update_organization" organization.id %}');
+    makeEditable('phone_number', '{% url "update_organization" organization.id %}');
+    makeEditable('email', '{% url "update_organization" organization.id %}');
+    
+    // Поля руководителя
+    {% if supervisor %}
+    makeEditable('supervisor_last_name', '{% url "update_supervisor" supervisor.id %}');
+    makeEditable('supervisor_first_name', '{% url "update_supervisor" supervisor.id %}');
+    makeEditable('supervisor_middle_name', '{% url "update_supervisor" supervisor.id %}');
+    makeEditable('supervisor_position', '{% url "update_supervisor" supervisor.id %}');
+    makeEditable('supervisor_phone_number', '{% url "update_supervisor" supervisor.id %}');
+    {% endif %}
+});
+</script>
+{% endif %}
+{% endblock %}

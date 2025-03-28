@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Редактирование организации</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Основная информация</h4>
+            </div>
+            <div class="card-body">
+                {{ org_form.as_p }}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Руководитель организации</h4>
+            </div>
+            <div class="card-body">
+                {{ supervisor_form.as_p }}
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        <a href="{% url 'organization_detail' organization.id %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{% endblock %}

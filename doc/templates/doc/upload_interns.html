@@ -1,19 +1,174 @@
-{% extends 'base2.html' %}
+{% extends 'base.html' %}
 
 {% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-file-upload me-2"></i>Загрузка данных практикантов
+                        </h3>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-info-circle me-1"></i>Excel
+                        </span>
+                    </div>
+                </div>
 
-    <h1>Загрузка данных практикантов из Excel</h1>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <input type="file" name="excel_file" accept=".xlsx,.xls" required>
-        <button type="submit">Загрузить</button>
-    </form>
-    {% if messages %}
-        <ul>
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Загрузите Excel-файл с данными студентов. Файл должен содержать листы с названиями групп.
+                    </div>
 
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="excelFile" class="form-label">
+                                <i class="fas fa-file-excel me-2 text-success"></i>Выберите файл Excel
+                            </label>
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="excelFile" name="excel_file"
+                                       accept=".xlsx,.xls" required>
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-upload me-2"></i>Загрузить
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                Поддерживаются файлы формата .xlsx и .xls
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="requirements-card mt-4">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-list-check me-2"></i>Требования к файлу
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Каждый лист должен соответствовать группе студентов
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Название листа должно содержать название группы (например, "Группа П50-1-21")
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Обязательные столбцы: ФИО, Телефон, Метро, Организация
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if messages %}
+                <div class="card-footer">
+                    {% for message in messages %}
+                    <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подключение Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    .card {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        font-family: 'Oswald', sans-serif;
+        font-weight: 500;
+    }
+
+    .requirements-card .card-header {
+        font-size: 1.1rem;
+    }
+
+    .list-group-item {
+        padding: 0.75rem 1.25rem;
+        border-left: none;
+        border-right: none;
+    }
+
+    .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn-primary {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+
+    .alert {
+        border-radius: 8px;
+    }
+
+    .alert-info {
+        background-color: #e7f1ff;
+        border-color: #d6e4ff;
+        color: #084298;
+    }
+
+    .alert-success {
+        background-color: #e8f7ee;
+        border-color: #d6f0e1;
+        color: #0f5132;
+    }
+
+    .alert-error, .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #842029;
+    }
+</style>
+
+<script>
+    // Валидация формы
+    (function() {
+        'use strict'
+
+        var forms = document.querySelectorAll('.needs-validation')
+
+        Array.prototype.slice.call(forms)
+            .forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
 {% endblock %}

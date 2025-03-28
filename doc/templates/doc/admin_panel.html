@@ -1,66 +1,253 @@
 {% extends 'base2.html' %}
 
 {% block content %}
-    <div class="container">
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h2 class="text-center mb-4">Панель администратора</h2>
-                <p class="text-end">Вы вошли как: <strong>{{ request.session.email }}</strong>
-                    <a href="{% url 'logoutPage' %}" class="btn btn-danger btn-sm ms-3">Выйти</a>
-                </p>
+<div class="container-fluid py-4">
+    <!-- Заголовок и кнопка выхода -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0">
+                <i class="fas fa-tachometer-alt me-2 text-primary"></i>Панель администратора
+            </h1>
+            <p class="text-muted mb-0">Вы вошли как: <strong>{{ request.session.email }}</strong></p>
+        </div>
+        <a href="{% url 'logoutPage' %}" class="btn btn-danger">
+            <i class="fas fa-sign-out-alt me-2"></i>Выйти
+        </a>
+    </div>
+
+    <!-- Навигационные карточки -->
+    <div class="row mb-4">
+        <!-- Практиканты -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Практиканты</h5>
+                            <p class="card-text mb-0">{{ interns.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-user-graduate fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#interns-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
             </div>
         </div>
 
+        <!-- Аккаунты -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Аккаунты</h5>
+                            <p class="card-text mb-0">{{ accounts.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#accounts-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Организации -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Организации</h5>
+                            <p class="card-text mb-0">{{ organizations.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-building fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#organizations-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Группы -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Группы</h5>
+                            <p class="card-text mb-0">{{ groups.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#groups-section" class="text-dark stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Документы -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-dark text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Документы</h5>
+                            <p class="card-text mb-0">{{ documents.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-file-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#documents-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Специальности -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Специальности</h5>
+                            <p class="card-text mb-0">{{ specialties.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-graduation-cap fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#specialties-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Практики -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-purple text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Практики</h5>
+                            <p class="card-text mb-0">{{ practices.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-briefcase fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#practices-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Графики -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-teal text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Графики</h5>
+                            <p class="card-text mb-0">{{ schedules.paginator.count }}</p>
+                        </div>
+                        <i class="fas fa-calendar-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="#schedules-section" class="text-white stretched-link">Перейти к разделу</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основные разделы -->
+    <div class="row">
         <!-- Практиканты -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Практиканты</h3>
-                <!-- Выпадающий список для фильтрации по группам -->
-                <form method="get" class="mb-3">
-                    <select name="group" class="form-select" onchange="this.form.submit()">
-                        <option value="">Все группы</option>
-                        {% for group in all_groups %}
-                            <option value="{{ group.id }}" {% if group.id|stringformat:"s" == request.GET.group %}selected{% endif %}>
-                                {{ group.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </form>
-                <a href="{% url 'admin_add' 'intern' %}" class="btn btn-success mb-3">Добавить практиканта</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Фамилия</th>
-                            <th>Имя</th>
-                            <th>Отчество</th>
-                            <th>Группа</th>
-                            <th>Организация</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for intern in interns %}
-                            <tr>
-                                <td>{{ intern.last_name }}</td>
-                                <td>{{ intern.first_name }}</td>
-                                <td>{{ intern.middle_name }}</td>
-                                <td>{{ intern.group.name }}</td>
-                                <td>{{ intern.organization.full_name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'intern' intern.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'intern' intern.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для практикантов -->
+        <div class="col-md-12 mb-4" id="interns-section">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-graduate me-2 text-primary"></i>Практиканты
+                    </h3>
+                    <div>
+                        <form method="get" class="d-inline-block me-2" style="width: 200px;">
+                            <select name="group" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">Все группы</option>
+                                {% for group in all_groups %}
+                                    <option value="{{ group.id }}" {% if group.id|stringformat:"s" == request.GET.group %}selected{% endif %}>
+                                        {{ group.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                        <a href="{% url 'admin_add' 'intern' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Добавить
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">ФИО</th>
+                                    <th>Группа</th>
+                                    <th>Организация</th>
+                                    <th>Теги</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for intern in interns %}
+                                <tr>
+                                    <td class="ps-4">
+                                        {{ intern.last_name }} {{ intern.first_name }} {{ intern.middle_name|default:"" }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">
+                                            {{ intern.group.name|default:"-" }}
+                                        </span>
+                                    </td>
+                                    <td>{{ intern.organization.full_name|default:"-" }}</td>
+                                    <td>
+                                        {% for tag in intern.tags.all %}
+                                            <span class="badge bg-secondary me-1">{{ tag.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'intern' intern.id %}"
+                                               class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'intern' intern.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-user-slash fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о практикантах</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if interns.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if interns.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ interns.previous_page_number }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Назад</a>
+                                    <a class="page-link" href="?page={{ interns.previous_page_number }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}#interns-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -69,12 +256,12 @@
                             {% endif %}
                             {% for i in interns.paginator.page_range %}
                                 <li class="page-item {% if interns.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}#interns-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if interns.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ interns.next_page_number }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}">Вперед</a>
+                                    <a class="page-link" href="?page={{ interns.next_page_number }}{% if request.GET.group %}&group={{ request.GET.group }}{% endif %}#interns-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -83,49 +270,81 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Аккаунты -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Аккаунты</h3>
-                <a href="{% url 'admin_add' 'account' %}" class="btn btn-success mb-3">Добавить аккаунт</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Email</th>
-                            <th>Фамилия</th>
-                            <th>Имя</th>
-                            <th>Отчество</th>
-                            <th>Роль</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for account in accounts %}
-                            <tr>
-                                <td>{{ account.email }}</td>
-                                <td>{{ account.surname }}</td>
-                                <td>{{ account.name }}</td>
-                                <td>{{ account.patronymic }}</td>
-                                <td>{{ account.role.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'account' account.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'account' account.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для аккаунтов -->
+        <div class="col-md-12 mb-4" id="accounts-section">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-users me-2 text-success"></i>Аккаунты
+                    </h3>
+                    <a href="{% url 'admin_add' 'account' %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Email</th>
+                                    <th>ФИО</th>
+                                    <th>Роль</th>
+                                    <th>Управляемые группы</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account in accounts %}
+                                <tr>
+                                    <td class="ps-4">{{ account.email }}</td>
+                                    <td>{{ account.surname }} {{ account.name }} {{ account.patronymic|default:"" }}</td>
+                                    <td>
+                                        <span class="badge bg-success bg-opacity-10 text-success">
+                                            {{ account.role.name }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% for group in account.managed_groups.all %}
+                                            <span class="badge bg-warning me-1">{{ group.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'account' account.id %}"
+                                               class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'account' account.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-user-slash fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных об аккаунтах</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if accounts.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if accounts.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ accounts.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ accounts.previous_page_number }}#accounts-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -134,12 +353,12 @@
                             {% endif %}
                             {% for i in accounts.paginator.page_range %}
                                 <li class="page-item {% if accounts.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}#accounts-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if accounts.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ accounts.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ accounts.next_page_number }}#accounts-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -148,43 +367,69 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Группы -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Группы</h3>
-                <a href="{% url 'admin_add' 'group' %}" class="btn btn-success mb-3">Добавить группу</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Название</th>
-                            <th>Специальность</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for group in groups %}
-                            <tr>
-                                <td>{{ group.name }}</td>
-                                <td>{{ group.specialty.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'group' group.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'group' group.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для групп -->
+        <div class="col-md-6 mb-4" id="groups-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-users me-2 text-warning"></i>Группы
+                    </h3>
+                    <a href="{% url 'admin_add' 'group' %}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th>Специальность</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for group in groups %}
+                                <tr>
+                                    <td class="ps-4">{{ group.name }}</td>
+                                    <td>{{ group.specialty.name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'group' group.id %}"
+                                               class="btn btn-sm btn-outline-warning" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'group' group.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">
+                                        <i class="fas fa-users-slash fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о группах</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if groups.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if groups.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ groups.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ groups.previous_page_number }}#groups-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -193,12 +438,12 @@
                             {% endif %}
                             {% for i in groups.paginator.page_range %}
                                 <li class="page-item {% if groups.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}#groups-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if groups.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ groups.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ groups.next_page_number }}#groups-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -207,43 +452,77 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Организации -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Организации</h3>
-                <a href="{% url 'admin_add' 'organization' %}" class="btn btn-success mb-3">Добавить организацию</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Название</th>
-                            <th>Юридический адрес</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for organization in organizations %}
-                            <tr>
-                                <td>{{ organization.full_name }}</td>
-                                <td>{{ organization.legal_address }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'organization' organization.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'organization' organization.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для организаций -->
+        <div class="col-md-6 mb-4" id="organizations-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-building me-2 text-info"></i>Организации
+                    </h3>
+                    <a href="{% url 'admin_add' 'organization' %}" class="btn btn-info btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th>Адрес</th>
+                                    <th>Статус</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for organization in organizations %}
+                                <tr>
+                                    <td class="ps-4">{{ organization.full_name }}</td>
+                                    <td>{{ organization.legal_address|truncatechars:20 }}</td>
+                                    <td>
+                                        {% if organization.is_approved %}
+                                            <span class="badge bg-success">Подтверждено</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Ожидает подтверждения</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'organization' organization.id %}"
+                                               class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'organization' organization.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="fas fa-building fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных об организациях</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if organizations.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if organizations.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ organizations.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ organizations.previous_page_number }}#organizations-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -252,12 +531,12 @@
                             {% endif %}
                             {% for i in organizations.paginator.page_range %}
                                 <li class="page-item {% if organizations.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}#organizations-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if organizations.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ organizations.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ organizations.next_page_number }}#organizations-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -266,228 +545,67 @@
                             {% endif %}
                         </ul>
                     </nav>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Руководители от техникума -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Руководители от техникума</h3>
-                <a href="{% url 'admin_add' 'college_supervisor' %}" class="btn btn-success mb-3">Добавить руководителя</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Фамилия</th>
-                            <th>Имя</th>
-                            <th>Отчество</th>
-                            <th>Должность</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for supervisor in supervisors %}
-                            <tr>
-                                <td>{{ supervisor.last_name }}</td>
-                                <td>{{ supervisor.first_name }}</td>
-                                <td>{{ supervisor.middle_name }}</td>
-                                <td>{{ supervisor.position }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'college_supervisor' supervisor.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'college_supervisor' supervisor.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для руководителей -->
-                {% if supervisors.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            {% if supervisors.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ supervisors.previous_page_number }}">Назад</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Назад</span>
-                                </li>
-                            {% endif %}
-                            {% for i in supervisors.paginator.page_range %}
-                                <li class="page-item {% if supervisors.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
-                                </li>
-                            {% endfor %}
-                            {% if supervisors.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ supervisors.next_page_number }}">Вперед</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Вперед</span>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Специальности -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Специальности</h3>
-                <a href="{% url 'admin_add' 'specialty' %}" class="btn btn-success mb-3">Добавить специальность</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Код</th>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for specialty in specialties %}
-                            <tr>
-                                <td>{{ specialty.code }}</td>
-                                <td>{{ specialty.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'specialty' specialty.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'specialty' specialty.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для специальностей -->
-                {% if specialties.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            {% if specialties.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ specialties.previous_page_number }}">Назад</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Назад</span>
-                                </li>
-                            {% endif %}
-                            {% for i in specialties.paginator.page_range %}
-                                <li class="page-item {% if specialties.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
-                                </li>
-                            {% endfor %}
-                            {% if specialties.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ specialties.next_page_number }}">Вперед</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Вперед</span>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Руководители организаций -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Руководители организаций</h3>
-                <a href="{% url 'admin_add' 'org_supervisor' %}" class="btn btn-success mb-3">Добавить руководителя организации</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Фамилия</th>
-                            <th>Имя</th>
-                            <th>Отчество</th>
-                            <th>Должность</th>
-                            <th>Организация</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for org_supervisor in org_supervisors %}
-                            <tr>
-                                <td>{{ org_supervisor.last_name }}</td>
-                                <td>{{ org_supervisor.first_name }}</td>
-                                <td>{{ org_supervisor.middle_name }}</td>
-                                <td>{{ org_supervisor.position }}</td>
-                                <td>{{ org_supervisor.organization.full_name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'org_supervisor' org_supervisor.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'org_supervisor' org_supervisor.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для руководителей организаций -->
-                {% if org_supervisors.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            {% if org_supervisors.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ org_supervisors.previous_page_number }}">Назад</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Назад</span>
-                                </li>
-                            {% endif %}
-                            {% for i in org_supervisors.paginator.page_range %}
-                                <li class="page-item {% if org_supervisors.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
-                                </li>
-                            {% endfor %}
-                            {% if org_supervisors.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ org_supervisors.next_page_number }}">Вперед</a>
-                                </li>
-                            {% else %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">Вперед</span>
-                                </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Роли -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Роли</h3>
-                <a href="{% url 'admin_add' 'role' %}" class="btn btn-success mb-3">Добавить роль</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for role in roles %}
-                            <tr>
-                                <td>{{ role.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'role' role.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'role' role.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для ролей -->
+        <div class="col-md-6 mb-4" id="roles-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-tag me-2 text-secondary"></i>Роли
+                    </h3>
+                    <a href="{% url 'admin_add' 'role' %}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for role in roles %}
+                                <tr>
+                                    <td class="ps-4">{{ role.name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'role' role.id %}"
+                                               class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'role' role.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-4 text-muted">
+                                        <i class="fas fa-user-tag fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о ролях</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if roles.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if roles.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ roles.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ roles.previous_page_number }}#roles-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -496,12 +614,12 @@
                             {% endif %}
                             {% for i in roles.paginator.page_range %}
                                 <li class="page-item {% if roles.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}#roles-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if roles.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ roles.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ roles.next_page_number }}#roles-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -510,55 +628,88 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Теги -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Теги</h3>
-                <a href="{% url 'admin_add' 'tag' %}" class="btn btn-success mb-3">Добавить тег</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Название</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tag in tags %}
-                            <tr>
-                                <td>{{ tag.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'tag' tag.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'tag' tag.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для тегов -->
-                {% if tags.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            {% if tags.has_previous %}
+        <!-- Документы -->
+        <div class="col-md-6 mb-4" id="documents-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-file-alt me-2 text-dark"></i>Документы
+                    </h3>
+                    <a href="{% url 'admin_add' 'document' %}" class="btn btn-dark btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th>Практика</th>
+                                    <th>Загружено</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in documents %}
+                                <tr>
+                                    <td class="ps-4">{{ document.title }}</td>
+                                    <td>{{ document.practice|default:"-" }}</td>
+                                    <td>{{ document.uploaded_by.surname }} {{ document.uploaded_by.name }} ({{ document.uploaded_at|date:"d.m.Y" }})</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ document.file.url }}" class="btn btn-sm btn-outline-dark" data-bs-toggle="tooltip" title="Просмотреть" target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'admin_edit' 'document' document.id %}"
+                                               class="btn btn-sm btn-outline-dark" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'document' document.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="fas fa-file-alt fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о документах</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if documents.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if documents.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ tags.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ documents.previous_page_number }}#documents-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
                                     <span class="page-link">Назад</span>
                                 </li>
                             {% endif %}
-                            {% for i in tags.paginator.page_range %}
-                                <li class="page-item {% if tags.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                            {% for i in documents.paginator.page_range %}
+                                <li class="page-item {% if documents.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#documents-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
-                            {% if tags.has_next %}
+                            {% if documents.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ tags.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ documents.next_page_number }}#documents-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -567,55 +718,83 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Графики -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Графики</h3>
-                <a href="{% url 'admin_add' 'schedule' %}" class="btn btn-success mb-3">Добавить график</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Описание</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for schedule in schedules %}
-                            <tr>
-                                <td>{{ schedule.schedule_description }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'schedule' schedule.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'schedule' schedule.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для графиков -->
-                {% if schedules.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            {% if schedules.has_previous %}
+        <!-- Специальности -->
+        <div class="col-md-6 mb-4" id="specialties-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-graduation-cap me-2 text-danger"></i>Специальности
+                    </h3>
+                    <a href="{% url 'admin_add' 'specialty' %}" class="btn btn-danger btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Код</th>
+                                    <th>Название</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for specialty in specialties %}
+                                <tr>
+                                    <td class="ps-4">{{ specialty.code }}</td>
+                                    <td>{{ specialty.name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'specialty' specialty.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'specialty' specialty.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">
+                                        <i class="fas fa-graduation-cap fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о специальностях</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if specialties.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if specialties.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ schedules.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ specialties.previous_page_number }}#specialties-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
                                     <span class="page-link">Назад</span>
                                 </li>
                             {% endif %}
-                            {% for i in schedules.paginator.page_range %}
-                                <li class="page-item {% if schedules.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                            {% for i in specialties.paginator.page_range %}
+                                <li class="page-item {% if specialties.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#specialties-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
-                            {% if schedules.has_next %}
+                            {% if specialties.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ schedules.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ specialties.next_page_number }}#specialties-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -624,51 +803,83 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Практики -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <h3 class="mb-3">Практики</h3>
-                <a href="{% url 'admin_add' 'practice' %}" class="btn btn-success mb-3">Добавить практику</a>
-                <table class="table table-hover">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>ПП</th>
-                            <th>ПМ</th>
-                            <th>Преддипломная</th>
-                            <th>График</th>
-                            <th>Часы</th>
-                            <th>Группа</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for practice in practices %}
-                            <tr>
-                                <td>{{ practice.pp }}</td>
-                                <td>{{ practice.pm }}</td>
-                                <td>{{ practice.preddiplom }}</td>
-                                <td>{{ practice.schedule.schedule_description }}</td>
-                                <td>{{ practice.hours }}</td>
-                                <td>{{ practice.group.name }}</td>
-                                <td>
-                                    <a href="{% url 'admin_edit' 'practice' practice.id %}" class="btn btn-primary btn-sm me-2">Редактировать</a>
-                                    <a href="{% url 'admin_delete' 'practice' practice.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <!-- Пагинация для практик -->
+        <div class="col-md-6 mb-4" id="practices-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-briefcase me-2 text-purple"></i>Практики
+                    </h3>
+                    <a href="{% url 'admin_add' 'practice' %}" class="btn btn-purple btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Тип</th>
+                                    <th>График</th>
+                                    <th>Часы</th>
+                                    <th>Группы</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for practice in practices %}
+                                <tr>
+                                    <td class="ps-4">
+                                        {% if practice.preddiplom %}
+                                            Преддипломная
+                                        {% else %}
+                                            {{ practice.pp|default:"" }} {{ practice.pm|default:"" }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ practice.schedule.schedule_description }}</td>
+                                    <td>{{ practice.hours }}</td>
+                                    <td>
+                                        {% for group in practice.groups.all %}
+                                            <span class="badge bg-primary me-1">{{ group.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'practice' practice.id %}"
+                                               class="btn btn-sm btn-outline-purple" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'practice' practice.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="fas fa-briefcase fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о практиках</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 {% if practices.has_other_pages %}
-                    <nav>
-                        <ul class="pagination justify-content-center">
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
                             {% if practices.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ practices.previous_page_number }}">Назад</a>
+                                    <a class="page-link" href="?page={{ practices.previous_page_number }}#practices-section">Назад</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -677,12 +888,12 @@
                             {% endif %}
                             {% for i in practices.paginator.page_range %}
                                 <li class="page-item {% if practices.number == i %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                    <a class="page-link" href="?page={{ i }}#practices-section">{{ i }}</a>
                                 </li>
                             {% endfor %}
                             {% if practices.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ practices.next_page_number }}">Вперед</a>
+                                    <a class="page-link" href="?page={{ practices.next_page_number }}#practices-section">Вперед</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled">
@@ -691,8 +902,549 @@
                             {% endif %}
                         </ul>
                     </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Графики -->
+        <div class="col-md-6 mb-4" id="schedules-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2 text-teal"></i>Графики
+                    </h3>
+                    <a href="{% url 'admin_add' 'schedule' %}" class="btn btn-teal btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Описание</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                <tr>
+                                    <td class="ps-4">{{ schedule.schedule_description }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'schedule' schedule.id %}"
+                                               class="btn btn-sm btn-outline-teal" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'schedule' schedule.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-4 text-muted">
+                                        <i class="fas fa-calendar-alt fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о графиках</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if schedules.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if schedules.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ schedules.previous_page_number }}#schedules-section">Назад</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Назад</span>
+                                </li>
+                            {% endif %}
+                            {% for i in schedules.paginator.page_range %}
+                                <li class="page-item {% if schedules.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#schedules-section">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+                            {% if schedules.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ schedules.next_page_number }}#schedules-section">Вперед</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Вперед</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Теги -->
+        <div class="col-md-6 mb-4" id="tags-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-tags me-2 text-indigo"></i>Теги
+                    </h3>
+                    <a href="{% url 'admin_add' 'tag' %}" class="btn btn-indigo btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Название</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in tags %}
+                                <tr>
+                                    <td class="ps-4">{{ tag.name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'tag' tag.id %}"
+                                               class="btn btn-sm btn-outline-indigo" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'tag' tag.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center py-4 text-muted">
+                                        <i class="fas fa-tags fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о тегах</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if tags.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if tags.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ tags.previous_page_number }}#tags-section">Назад</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Назад</span>
+                                </li>
+                            {% endif %}
+                            {% for i in tags.paginator.page_range %}
+                                <li class="page-item {% if tags.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#tags-section">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+                            {% if tags.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ tags.next_page_number }}#tags-section">Вперед</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Вперед</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Руководители от колледжа -->
+        <div class="col-md-6 mb-4" id="college-supervisors-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2 text-orange"></i>Руководители от колледжа
+                    </h3>
+                    <a href="{% url 'admin_add' 'collegesupervisor' %}" class="btn btn-orange btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">ФИО</th>
+                                    <th>Должность</th>
+                                    <th>Email</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for supervisor in college_supervisors %}
+                                <tr>
+                                    <td class="ps-4">{{ supervisor.last_name }} {{ supervisor.first_name }} {{ supervisor.middle_name|default:"" }}</td>
+                                    <td>{{ supervisor.position }}</td>
+                                    <td>{{ supervisor.email }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'collegesupervisor' supervisor.id %}"
+                                               class="btn btn-sm btn-outline-orange" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'collegesupervisor' supervisor.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="fas fa-chalkboard-teacher fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о руководителях</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if college_supervisors.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if college_supervisors.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ college_supervisors.previous_page_number }}#college-supervisors-section">Назад</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Назад</span>
+                                </li>
+                            {% endif %}
+                            {% for i in college_supervisors.paginator.page_range %}
+                                <li class="page-item {% if college_supervisors.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#college-supervisors-section">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+                            {% if college_supervisors.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ college_supervisors.next_page_number }}#college-supervisors-section">Вперед</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Вперед</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Руководители от организаций -->
+        <div class="col-md-6 mb-4" id="organization-supervisors-section">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-tie me-2 text-pink"></i>Руководители от организаций
+                    </h3>
+                    <a href="{% url 'admin_add' 'organizationsupervisor' %}" class="btn btn-pink btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">ФИО</th>
+                                    <th>Должность</th>
+                                    <th>Организация</th>
+                                    <th class="text-end pe-4">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for supervisor in organization_supervisors %}
+                                <tr>
+                                    <td class="ps-4">{{ supervisor.last_name }} {{ supervisor.first_name }} {{ supervisor.middle_name|default:"" }}</td>
+                                    <td>{{ supervisor.position }}</td>
+                                    <td>{{ supervisor.organization.full_name }}</td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin_edit' 'organizationsupervisor' supervisor.id %}"
+                                               class="btn btn-sm btn-outline-pink" data-bs-toggle="tooltip" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'admin_delete' 'organizationsupervisor' supervisor.id %}"
+                                               class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Удалить">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">
+                                        <i class="fas fa-user-tie fa-2x mb-3"></i>
+                                        <p class="mb-0">Нет данных о руководителях</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if organization_supervisors.has_other_pages %}
+                <div class="card-footer bg-white">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if organization_supervisors.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ organization_supervisors.previous_page_number }}#organization-supervisors-section">Назад</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Назад</span>
+                                </li>
+                            {% endif %}
+                            {% for i in organization_supervisors.paginator.page_range %}
+                                <li class="page-item {% if organization_supervisors.number == i %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ i }}#organization-supervisors-section">{{ i }}</a>
+                                </li>
+                            {% endfor %}
+                            {% if organization_supervisors.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ organization_supervisors.next_page_number }}#organization-supervisors-section">Вперед</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Вперед</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
                 {% endif %}
             </div>
         </div>
     </div>
+</div>
+
+<!-- Подключение Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .card-header {
+        padding: 1rem 1.5rem;
+        background-color: white;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #6c757d;
+        border-top: none;
+        vertical-align: middle;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.03);
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+
+    .form-control, .form-select {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .page-link {
+        border-radius: 8px !important;
+        margin: 0 3px;
+    }
+
+    /* Дополнительные цвета */
+    .bg-purple {
+        background-color: #6f42c1 !important;
+    }
+
+    .bg-teal {
+        background-color: #20c997 !important;
+    }
+
+    .bg-orange {
+        background-color: #fd7e14 !important;
+    }
+
+    .bg-pink {
+        background-color: #d63384 !important;
+    }
+
+    .bg-cyan {
+        background-color: #0dcaf0 !important;
+    }
+
+    .bg-indigo {
+        background-color: #6610f2 !important;
+    }
+
+    .btn-purple {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        color: white;
+    }
+
+    .btn-teal {
+        background-color: #20c997;
+        border-color: #20c997;
+        color: white;
+    }
+
+    .btn-orange {
+        background-color: #fd7e14;
+        border-color: #fd7e14;
+        color: white;
+    }
+
+    .btn-pink {
+        background-color: #d63384;
+        border-color: #d63384;
+        color: white;
+    }
+
+    .btn-cyan {
+        background-color: #0dcaf0;
+        border-color: #0dcaf0;
+        color: white;
+    }
+
+    .btn-indigo {
+        background-color: #6610f2;
+        border-color: #6610f2;
+        color: white;
+    }
+
+    .btn-outline-purple {
+        color: #6f42c1;
+        border-color: #6f42c1;
+    }
+
+    .btn-outline-teal {
+        color: #20c997;
+        border-color: #20c997;
+    }
+
+    .btn-outline-orange {
+        color: #fd7e14;
+        border-color: #fd7e14;
+    }
+
+    .btn-outline-pink {
+        color: #d63384;
+        border-color: #d63384;
+    }
+
+    .btn-outline-cyan {
+        color: #0dcaf0;
+        border-color: #0dcaf0;
+    }
+
+    .btn-outline-indigo {
+        color: #6610f2;
+        border-color: #6610f2;
+    }
+
+    .btn-outline-purple:hover {
+        color: white;
+        background-color: #6f42c1;
+    }
+
+    .btn-outline-teal:hover {
+        color: white;
+        background-color: #20c997;
+    }
+
+    .btn-outline-orange:hover {
+        color: white;
+        background-color: #fd7e14;
+    }
+
+    .btn-outline-pink:hover {
+        color: white;
+        background-color: #d63384;
+    }
+
+    .btn-outline-cyan:hover {
+        color: white;
+        background-color: #0dcaf0;
+    }
+
+    .btn-outline-indigo:hover {
+        color: white;
+        background-color: #6610f2;
+    }
+</style>
+
+<script>
+    // Инициализация tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
 {% endblock %}

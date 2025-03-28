@@ -1,15 +1,13 @@
 <header>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-
-            <!-- Кнопка для мобильной версии -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <!-- Содержимое навигации -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">  <!-- me-auto выравнивает левую часть -->
+                <ul class="navbar-nav me-auto">
                     {% if request.session.role != "Организация" %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'interns_list' %}">База практикантов</a>
@@ -22,25 +20,38 @@
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'organizations_index' %}">База практикантов</a>
+                            <a class="nav-link" href="{% url 'organizer_index' %}">База практикантов</a>
                         </li>
+                        {% with org_id=request.session.organization_id %}
+                            {% if org_id %}
+                                <li class="nav-item">
+                                    <a href="{% url 'organization_detail' org_id %}" class="btn btn-outline-light me-2">
+                                        Данные организации
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'organization_detail' org_id %}#supervisor" class="btn btn-outline-light">
+                                        Данные руководителя
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endwith %}
                     {% endif %}
                 </ul>
 
-                <!-- Правая часть: почта и кнопка выхода -->
-                <ul class="navbar-nav ms-auto">  <!-- ms-auto выравнивает правую часть -->
+                <ul class="navbar-nav ms-auto">
                     {% if request.session.email %}
                         <li class="nav-item">
-                            <a style="color: #9f9f9f" class="nav-link">{{ request.session.role }}</a>
+                            <span class="nav-link text-muted">{{ request.session.role }}</span>
                         </li>
                         <li class="nav-item">
-                            <a style="color: whitesmoke" class="nav-link">{{ request.session.user_surname }}</a>
+                            <span class="nav-link text-white">{{ request.session.user_surname }}</span>
                         </li>
                         <li class="nav-item">
-                            <u><a style="color: whitesmoke" class="nav-link">{{ request.session.email }}</a></u>
+                            <u><span class="nav-link text-white">{{ request.session.email }}</span></u>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn" href="{% url 'logoutPage' %}">Выйти</a>
+                            <a class="nav-link btn btn-link" href="{% url 'logoutPage' %}">Выйти</a>
                         </li>
                     {% else %}
                         <li class="nav-item">

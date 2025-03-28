@@ -67,7 +67,15 @@
                                 <td>{{ intern.phone_number|default:"-" }}</td>
                                 <td>{{ intern.email|default:"-" }}</td>
                                 <td>{{ intern.metro_station|default:"-" }}</td>
-                                <td>{{ intern.organization.full_name|default:"-" }}</td>
+                                <td>
+                                    {% if intern.organization %}
+                                        <a href="{% url 'organization_detail' intern.organization.id %}">
+                                            {{ intern.organization.full_name }}
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -103,5 +111,20 @@
             });
         });
     </script>
+
+    <style>
+        .modified-row {
+            background-color: rgba(255, 255, 0, 0.1);
+        }
+
+        a {
+            text-decoration: none;
+            color: #0d6efd;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
 
 {% endblock %}
