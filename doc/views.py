@@ -7,6 +7,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.hashers import check_password
 from django.template.loader import render_to_string
+from docx.shared import Pt
+from prometheus_client import generate_latest
 
 from .forms import *
 import pandas as pd
@@ -17,6 +19,33 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.core.paginator import Paginator
 from docx import Document as DocxDocument
+from .metrics import REQUEST_COUNT, RESPONSE_TIME, ACTIVE_USERS
+import time
+
+
+def metrics_view(request):
+    metrics = generate_latest()
+    return HttpResponse(metrics, content_type='text/plain')
+
+
+def my_view(request):
+    start_time = time.time()
+
+    # Логика view
+    ACTIVE_USERS.inc()  # Увеличиваем счетчик активных пользователей
+
+    # Замер времени выполнения
+    response_time = time.time() - start_time
+    RESPONSE_TIME.labels(method=request.method, path=request.path).observe(response_time)
+
+    # Счетчик запросов
+    REQUEST_COUNT.labels(
+        method=request.method,
+        path=request.path,
+        status=200
+    ).inc()
+
+    return HttpResponse("Hello World")
 
 
 def upload_interns(request):
@@ -302,26 +331,24 @@ def upload_document_ajax(request):
 
 
 def download_filled_document(request, document_id):
-    # Получаем документ из базы данных
     document = get_object_or_404(Document, id=document_id)
 
-    # Получаем текущего пользователя из сессии
+    if not document.is_auto_fillable:
+        return HttpResponse("Этот документ не поддерживает автоматическое заполнение", status=400)
+
     email = request.session.get('email')
     if not email:
         return HttpResponse("Пользователь не авторизован", status=401)
 
-    # Получаем аккаунт пользователя
     account = Account.objects.filter(email=email).first()
     if not account:
         return HttpResponse("Аккаунт не найден", status=404)
 
-    # Получаем связанные данные
     intern = Intern.objects.filter(email=email).first()
     organization = intern.organization if intern else None
     college_supervisor = intern.college_supervisor if intern else None
     org_supervisor = OrganizationSupervisor.objects.filter(organization=organization).first() if organization else None
 
-    # Формируем данные для замены
     replacements = {
         '{{student_last_name}}': account.surname,
         '{{student_first_name}}': account.name,
@@ -340,33 +367,42 @@ def download_filled_document(request, document_id):
         '{{org_legal_address}}': organization.legal_address if organization else "Не указан",
     }
 
-    # Полный путь к файлу
-    file_path = os.path.join(settings.MEDIA_ROOT, str(document.file))
-
     try:
-        # Открываем DOCX файл с помощью python-docx
-        doc = DocxDocument(file_path)
+        doc = DocxDocument(os.path.join(settings.MEDIA_ROOT, str(document.file)))
 
-        # Заменяем текст в параграфах
+        # Установка стиля по умолчанию для всего документа
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = 'Times New Roman'
+        font.size = Pt(14)
+
         for paragraph in doc.paragraphs:
             for key, value in replacements.items():
                 if key in paragraph.text:
                     paragraph.text = paragraph.text.replace(key, value)
+                    # Применяем форматирование к абзацу
+                    paragraph.style = doc.styles['Normal']
+                    for run in paragraph.runs:
+                        run.font.name = 'Times New Roman'
+                        run.font.size = Pt(14)
 
-        # Заменяем текст в таблицах
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for key, value in replacements.items():
                         if key in cell.text:
                             cell.text = cell.text.replace(key, value)
+                            # Применяем форматирование к ячейке
+                            for paragraph in cell.paragraphs:
+                                paragraph.style = doc.styles['Normal']
+                                for run in paragraph.runs:
+                                    run.font.name = 'Times New Roman'
+                                    run.font.size = Pt(14)
 
-        # Сохраняем измененный документ
         output = BytesIO()
         doc.save(output)
         output.seek(0)
 
-        # Отправляем файл для скачивания
         response = HttpResponse(
             output.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -1175,17 +1211,20 @@ def auth(request):
 
 def admin_panel(request):
     # Получаем данные для всех моделей с пагинацией
-    accounts = Account.objects.all().order_by('surname')  # Сортировка по фамилии
+    accounts = Account.objects.all().order_by('surname')
     interns = Intern.objects.all().order_by('last_name')
-    groups = Group.objects.all()
-    organizations = Organization.objects.all()
-    supervisors = CollegeSupervisor.objects.all()
-    specialties = Specialty.objects.all()
-    org_supervisors = OrganizationSupervisor.objects.all()
-    roles = Role.objects.all()
-    tags = Tag.objects.all()
-    schedules = Schedule.objects.all()
-    practices = Practice.objects.all()
+    groups = Group.objects.all().order_by('name')  # Добавлен order_by
+    organizations = Organization.objects.all().order_by('full_name')  # Добавлен order_by
+    college_supervisors = CollegeSupervisor.objects.all().order_by('last_name')  # Добавлен order_by
+    specialties = Specialty.objects.all().order_by('name')  # Добавлен order_by
+    org_supervisors = OrganizationSupervisor.objects.all().order_by('last_name')  # Добавлен order_by
+    roles = Role.objects.all().order_by('name')  # Добавлен order_by
+    tags = Tag.objects.all().order_by('name')  # Добавлен order_by
+    schedules = Schedule.objects.all().order_by('schedule_description')  # Добавлен order_by (сортировка по дате)
+    practices = Practice.objects.all().order_by('pp')  # Добавлен order_by
+    documents = Document.objects.all().order_by('-uploaded_at')  # Добавлен order_by
+    students = Student.objects.all().order_by('account')  # Добавлен order_by
+    document_links = DocumentLinks.objects.all().order_by('document_link')  # Добавлен order_by
 
     # Фильтрация аккаунтов по роли
     selected_role = request.GET.get('role')
@@ -1202,39 +1241,48 @@ def admin_panel(request):
     paginator_interns = Paginator(interns, 30)
     paginator_groups = Paginator(groups, 20)
     paginator_organizations = Paginator(organizations, 20)
-    paginator_supervisors = Paginator(supervisors, 20)
+    paginator_college_supervisors = Paginator(college_supervisors, 20)
     paginator_specialties = Paginator(specialties, 20)
     paginator_org_supervisors = Paginator(org_supervisors, 20)
     paginator_roles = Paginator(roles, 10)
     paginator_tags = Paginator(tags, 10)
     paginator_schedules = Paginator(schedules, 20)
     paginator_practices = Paginator(practices, 20)
+    paginator_documents = Paginator(documents, 20)
+    paginator_students = Paginator(students, 20)
+    paginator_document_links = Paginator(document_links, 20)
 
     page_number = request.GET.get('page')
     accounts_page = paginator_accounts.get_page(page_number)
     interns_page = paginator_interns.get_page(page_number)
     groups_page = paginator_groups.get_page(page_number)
     organizations_page = paginator_organizations.get_page(page_number)
-    supervisors_page = paginator_supervisors.get_page(page_number)
+    college_supervisors_page = paginator_college_supervisors.get_page(page_number)
     specialties_page = paginator_specialties.get_page(page_number)
     org_supervisors_page = paginator_org_supervisors.get_page(page_number)
     roles_page = paginator_roles.get_page(page_number)
     tags_page = paginator_tags.get_page(page_number)
     schedules_page = paginator_schedules.get_page(page_number)
     practices_page = paginator_practices.get_page(page_number)
+    documents_page = paginator_documents.get_page(page_number)
+    students_page = paginator_students.get_page(page_number)
+    document_links_page = paginator_document_links.get_page(page_number)
 
     context = {
         'accounts': accounts_page,
         'interns': interns_page,
         'groups': groups_page,
         'organizations': organizations_page,
-        'supervisors': supervisors_page,
+        'college_supervisors': college_supervisors_page,
         'specialties': specialties_page,
-        'org_supervisors': org_supervisors_page,
+        'organization_supervisors': org_supervisors_page,
         'roles': roles_page,
         'tags': tags_page,
         'schedules': schedules_page,
         'practices': practices_page,
+        'documents': documents_page,
+        'students': students_page,
+        'document_links': document_links_page,
         'all_groups': groups,  # Для выпадающего списка групп
         'all_roles': roles,  # Для выпадающего списка ролей
     }
@@ -1327,18 +1375,19 @@ def get_model_by_name(model_name):
         'intern': Intern,
         'group': Group,
         'organization': Organization,
-        'college_supervisor': CollegeSupervisor,
+        'collegesupervisor': CollegeSupervisor,  # Обратите внимание на имя модели
         'specialty': Specialty,
-        'org_supervisor': OrganizationSupervisor,
+        'organizationsupervisor': OrganizationSupervisor,  # Обратите внимание на имя модели
         'role': Role,
         'tag': Tag,
         'schedule': Schedule,
         'practice': Practice,
-        'account': Account,  # Добавлена модель Account
-        'document': Document,  # Добавлена модель Document
-        'student': Student,  # Добавлена модель Student
+        'account': Account,
+        'document': Document,
+        'student': Student,
+        'documentlinks': DocumentLinks,
     }
-    model_class = models_dict.get(model_name)
+    model_class = models_dict.get(model_name.lower())  # Приводим к нижнему регистру для надежности
     if model_class is None:
         raise ValueError(f"Модель с именем '{model_name}' не найдена.")
     return model_class
@@ -1358,9 +1407,9 @@ def get_form_by_model_name(model_name, *args, **kwargs):
         'intern': InternForm,
         'group': GroupForm,
         'organization': OrganizationForm,
-        'college_supervisor': CollegeSupervisorForm,
+        'collegesupervisor': CollegeSupervisorForm,  # Обратите внимание на имя модели
         'specialty': SpecialtyForm,
-        'org_supervisor': OrganizationSupervisorForm,
+        'organizationsupervisor': OrganizationSupervisorForm,  # Обратите внимание на имя модели
         'role': RoleForm,
         'tag': TagForm,
         'schedule': ScheduleForm,
@@ -1368,8 +1417,9 @@ def get_form_by_model_name(model_name, *args, **kwargs):
         'account': AccountForm,
         'document': DocumentForm,
         'student': StudentForm,
+        'documentlinks': DocumentLinksForm,
     }
-    form_class = forms_dict.get(model_name)
+    form_class = forms_dict.get(model_name.lower())  # Приводим к нижнему регистру для надежности
     if form_class is None:
         raise ValueError(f"Форма для модели '{model_name}' не найдена.")
     return form_class

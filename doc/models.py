@@ -33,6 +33,7 @@ class Document(models.Model):
     practice = models.ForeignKey('Practice', on_delete=models.CASCADE, verbose_name="Практика", null=True, blank=True)
     uploaded_by = models.ForeignKey('Account', on_delete=models.CASCADE, verbose_name="Загружено")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
+    is_auto_fillable = models.BooleanField(default=False, verbose_name="Автозаполняемый")  # Новое поле
 
     def __str__(self):
         return self.title
@@ -368,9 +369,18 @@ class Organization(models.Model):
         return self.full_name
 
 
+class Classification(models.Model):
+    name = models.CharField(max_length=255, verbose_name="Классификация")
+
+    def __str__(self):
+        return self.name
+
+
 class Specialty(models.Model):
     code = models.CharField(max_length=20, verbose_name="Код специальности")
-    name = models.CharField(max_length=255, verbose_name="Название специальности")
+    name = models.CharField(max_length=255, verbose_name="Специальность")
+    organization = models.ForeignKey(Classification, blank=True, null=True, on_delete=models.CASCADE,
+                                     verbose_name="Классификация")
 
     def __str__(self):
         return self.code
@@ -403,3 +413,31 @@ class OrganizationSupervisor(models.Model):
 
     def __str__(self):
         return f"{self.last_name} {self.first_name}"
+
+
+class DatabaseBackup(models.Model):
+    file = models.FileField(upload_to='database_backups/', verbose_name="Файл бэкапа")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    size = models.CharField(max_length=20, verbose_name="Размер файла")
+    created_by = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True,
+                                  verbose_name="Создатель бэкапа")
+
+    class Meta:
+        verbose_name = "Бэкап базы данных"
+        verbose_name_plural = "Бэкапы базы данных"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Бэкап от {self.created_at.strftime('%d.%m.%Y %H:%M')} ({self.size})"
+
+    def save(self, *args, **kwargs):
+        # Вычисляем размер файла перед сохранением
+        if self.file:
+            size_bytes = self.file.size
+            if size_bytes < 1024:
+                self.size = f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                self.size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                self.size = f"{size_bytes / (1024 * 1024):.1f} MB"
+        super().save(*args, **kwargs)
