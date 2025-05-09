@@ -93,7 +93,7 @@ class ChangePasswordForm(forms.Form):
 class DocumentForm(forms.ModelForm):
     class Meta:
         model = Document
-        fields = ['title', 'file', 'practice']
+        fields = ['title', 'file', 'practice', 'is_auto_fillable']
 
 
 # Форма для модели Intern

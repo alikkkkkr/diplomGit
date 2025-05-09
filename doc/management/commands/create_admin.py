@@ -12,6 +12,8 @@ class Command(BaseCommand):
         # Проверяем, существует ли роль "Администратор"
         admin_role, created = Role.objects.get_or_create(name='Администратор')
 
+        # info@technopromservice.ru
+
         # Создаем пользователя
         email = 'admin@example.com'
         password = 'adminpassword'  # Пароль для администратора

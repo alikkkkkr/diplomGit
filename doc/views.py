@@ -1,18 +1,15 @@
 import os
-from datetime import datetime
 from io import BytesIO
+from urllib.parse import quote
 
 from django.core.mail import EmailMultiAlternatives
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth.hashers import check_password
 from django.template.loader import render_to_string
 from docx.shared import Pt
 from prometheus_client import generate_latest
-
 from .forms import *
 import pandas as pd
-from django.core.exceptions import ValidationError
 from .models import *
 from django.http import JsonResponse, Http404, FileResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -182,6 +179,127 @@ def upload_interns(request):
     return render(request, 'doc/upload_interns.html')
 
 
+def download_filled_document_supervisor(request, document_id, intern_id):
+    # Получаем документ и студента
+    document = get_object_or_404(Document, id=document_id)
+    intern = get_object_or_404(Intern, id=intern_id)
+
+    if not document.is_auto_fillable:
+        return HttpResponse("Этот документ не поддерживает автоматическое заполнение", status=400)
+
+    # Проверяем авторизацию пользователя
+    if not request.session.get('email'):
+        return HttpResponse("Пользователь не авторизован", status=401)
+
+    # Получаем связанные данные
+    organization = intern.organization
+    college_supervisor = intern.college_supervisor
+    org_supervisor = OrganizationSupervisor.objects.filter(organization=organization).first() if organization else None
+    group = intern.group
+
+    # Подготавливаем данные для замены
+    replacements = {
+        '{{student_last_name}}': intern.last_name or '',
+        '{{student_first_name}}': intern.first_name or '',
+        '{{student_middle_name}}': intern.middle_name or '',
+        '{{student_group}}': group.name if group else 'Не указана',
+        '{{college_supervisor_name}}': (
+            f"{college_supervisor.last_name} {college_supervisor.first_name} {college_supervisor.middle_name or ''}"
+            if college_supervisor else "Не указан"
+        ),
+        '{{org_supervisor_name}}': (
+            f"{org_supervisor.last_name} {org_supervisor.first_name} {org_supervisor.middle_name or ''}"
+            if org_supervisor else "Не указан"
+        ),
+        '{{org_supervisor_position}}': org_supervisor.position if org_supervisor else "Не указана",
+        '{{org_name}}': organization.full_name if organization else "Не указана",
+        '{{org_legal_address}}': organization.legal_address if organization else "Не указан",
+    }
+
+    try:
+        # Открываем документ
+        doc_path = os.path.join(settings.MEDIA_ROOT, str(document.file))
+        doc = DocxDocument(doc_path)
+
+        # Функция для сохранения стилей
+        def get_run_styles(run):
+            return {
+                'bold': run.bold,
+                'italic': run.italic,
+                'underline': run.underline,
+                'font': {
+                    'name': run.font.name,
+                    'size': run.font.size,
+                    'color': run.font.color.rgb if run.font.color else None
+                }
+            }
+
+        # Функция для применения стилей
+        def apply_styles(run, styles):
+            run.bold = styles['bold']
+            run.italic = styles['italic']
+            run.underline = styles['underline']
+            if styles['font']['name']:
+                run.font.name = styles['font']['name']
+            if styles['font']['size']:
+                run.font.size = styles['font']['size']
+            if styles['font']['color']:
+                run.font.color.rgb = styles['font']['color']
+
+        # Обрабатываем параграфы
+        for paragraph in doc.paragraphs:
+            for key, value in replacements.items():
+                if key in paragraph.text:
+                    # Сохраняем стили всех runs в параграфе
+                    styles = [get_run_styles(run) for run in paragraph.runs]
+
+                    # Заменяем текст
+                    paragraph.text = paragraph.text.replace(key, value)
+
+                    # Восстанавливаем стили
+                    for i, run in enumerate(paragraph.runs):
+                        if i < len(styles):
+                            apply_styles(run, styles[i])
+
+        # Обрабатываем таблицы
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for key, value in replacements.items():
+                            if key in paragraph.text:
+                                # Сохраняем стили
+                                styles = [get_run_styles(run) for run in paragraph.runs]
+
+                                # Заменяем текст
+                                paragraph.text = paragraph.text.replace(key, value)
+
+                                # Восстанавливаем стили
+                                for i, run in enumerate(paragraph.runs):
+                                    if i < len(styles):
+                                        apply_styles(run, styles[i])
+
+        # Создаем временный файл
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        filename = f"{document.title}.docx"
+        safe_filename = quote(filename)
+
+        # Отправляем файл
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
+        return response
+
+    except Exception as e:
+        logger.error(f"Ошибка при обработке документа: {str(e)}")
+        return HttpResponse(f"Ошибка при обработке документа: {str(e)}", status=500)
+
+
 def interns_list(request):
     # Проверка авторизации
     if not request.session.get('email'):
@@ -215,29 +333,30 @@ def interns_list(request):
 
 
 def organizer_index(request):
-    # Проверка авторизации
     if not request.session.get('email'):
         return redirect('authPage')
 
-    # Получаем текущего пользователя
     try:
         user = Account.objects.get(email=request.session['email'])
     except Account.DoesNotExist:
         return redirect('authPage')
 
-    # Получаем организацию, если пользователь - организация
     organization = None
-    if user.role.name == 'Организация' and hasattr(user, 'organization'):
-        organization = user.organization
+    supervisor = None
 
-    # Получение списка практикантов
+    if user.role.name == 'Организация':
+        # Ищем организацию по email пользователя
+        organization = Organization.objects.filter(email=user.email).first()
+        if organization:
+            supervisor = OrganizationSupervisor.objects.filter(organization=organization).first()
+
     interns = Intern.objects.all()
 
-    # Формирование контекста
     context = {
         "interns": interns,
-        "organization": organization,  # Добавляем организацию в контекст
-        "user": user,  # Добавляем пользователя в контекст
+        "organization": organization,
+        "supervisor": supervisor,
+        "user": user,
     }
 
     return render(request, 'doc/organizer_index.html', context)
@@ -311,9 +430,35 @@ def documents_page(request):
     if not request.session.get('email'):
         return redirect('authPage')  # Перенаправляем на страницу авторизации, если пользователь не авторизован
 
-    documents = Document.objects.filter(uploaded_by__email=request.session.get('email'))
-    practices = Practice.objects.all()  # Получаем все практики
-    return render(request, 'doc/documents.html', {'documents': documents, 'practices': practices})
+    # Получаем текущего пользователя
+    user = Account.objects.get(email=request.session['email'])
+
+    # Получаем документы пользователя
+    documents = Document.objects.filter(uploaded_by=user)
+
+    # Получаем все практики
+    practices = Practice.objects.all()
+
+    # Получаем все группы, которыми управляет пользователь (если он руководитель практики)
+    if user.role.name == 'Руководитель практики':
+        groups = user.managed_groups.all()
+    else:
+        groups = Group.objects.all()
+
+    # Получаем всех студентов из этих групп
+    interns = Intern.objects.filter(group__in=groups)
+
+    # Получаем все специальности
+    specialties = Specialty.objects.all()
+
+    context = {
+        'documents': documents,
+        'practices': practices,
+        'groups': groups,
+        'specialties': specialties,
+    }
+
+    return render(request, 'doc/documents.html', context)
 
 
 @csrf_exempt
@@ -407,7 +552,7 @@ def download_filled_document(request, document_id):
             output.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
-        response['Content-Disposition'] = f'attachment; filename="filled_{document.title}.docx"'
+        response['Content-Disposition'] = f'attachment; filename="{document.title}.docx"'
         return response
 
     except Exception as e:
@@ -689,6 +834,22 @@ def organization_detail(request, organization_id):
     # Получение студентов, связанных с организацией
     interns = Intern.objects.filter(organization=organization)
 
+    # Получаем все группы, связанные с этой организацией через студентов
+    groups = Group.objects.filter(intern__organization=organization).distinct()
+
+    # Для каждой группы получаем связанные практики (только ПМ или преддипломные)
+    groups_data = []
+    for group in groups:
+        practices = Practice.objects.filter(
+            groups=group
+        ).filter(
+            models.Q(pm__isnull=False) | models.Q(preddiplom=True)
+        )
+        groups_data.append({
+            'group': group,
+            'practices': practices
+        })
+
     # Проверка прав доступа
     user = Account.objects.get(email=request.session['email'])
     is_organization_admin = (user.role.name == 'Организация' and
@@ -703,6 +864,7 @@ def organization_detail(request, organization_id):
         'organization': organization,
         'supervisor': supervisor,
         'interns': interns,
+        'groups_data': groups_data,  # Добавляем данные о группах и практиках
         'can_edit': is_organization_admin or is_admin,
     }
 
@@ -711,43 +873,110 @@ def organization_detail(request, organization_id):
 
 @csrf_exempt
 def update_organization(request, organization_id):
-    if request.method == 'POST':
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'Метод не разрешен. Используйте POST.'
+        }, status=405)
+
+    try:
+        # Проверка авторизации
+        if not request.session.get('email'):
+            return JsonResponse({
+                'success': False,
+                'error': 'Требуется авторизация'
+            }, status=401)
+
+        # Получаем пользователя и организацию
+        user = Account.objects.get(email=request.session['email'])
+        organization = get_object_or_404(Organization, id=organization_id)
+
+        # Упрощенная проверка прав доступа
+        # Проверяем, что пользователь - организация и его email совпадает с email организации
+        if user.role.name != 'Организация' or user.email != organization.email:
+            return JsonResponse({
+                'success': False,
+                'error': 'Недостаточно прав для редактирования этой организации'
+            }, status=403)
+
+        # Парсинг JSON данных
         try:
-            # Проверка авторизации
-            if not request.session.get('email'):
-                return JsonResponse({'success': False, 'error': 'Не авторизован'})
-
-            user = Account.objects.get(email=request.session['email'])
-            organization = get_object_or_404(Organization, id=organization_id)
-
-            # Проверка прав
-            is_organization_admin = (user.role.name == 'Организация' and
-                                     request.session.get('organization_id') == organization.id)
-            is_admin = user.role.name == 'Администратор'
-
-            if not (is_organization_admin or is_admin):
-                return JsonResponse({'success': False, 'error': 'Нет прав для редактирования'})
-
             data = json.loads(request.body)
-            field = data.get('field')
-            value = data.get('value')
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Неверный формат JSON данных'
+            }, status=400)
 
-            # Запрещаем редактирование некоторых полей
-            if field in ['id', 'is_approved', 'is_registration_request']:
-                return JsonResponse({'success': False, 'error': 'Редактирование этого поля запрещено'})
+        # Обновление данных организации
+        org_fields = {
+            'full_name': data.get('full_name'),
+            'legal_address': data.get('legal_address'),
+            'actual_address': data.get('actual_address'),
+            'inn': data.get('inn'),
+            'kpp': data.get('kpp'),
+            'ogrn': data.get('ogrn'),
+            'phone_number': data.get('phone_number'),
+            'email': data.get('email')
+        }
 
-            # Обновляем поле
-            if hasattr(organization, field):
+        for field, value in org_fields.items():
+            if value is not None:
                 setattr(organization, field, value)
-                organization.save()
-                return JsonResponse({'success': True})
-            else:
-                return JsonResponse({'success': False, 'error': 'Неверное поле'})
 
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+        try:
+            organization.full_clean()
+            organization.save()
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': 'Ошибка валидации данных организации',
+                'details': dict(e)
+            }, status=400)
 
-    return JsonResponse({'success': False, 'error': 'Неверный метод запроса'})
+        # Обновление данных руководителя
+        supervisor, created = OrganizationSupervisor.objects.get_or_create(
+            organization=organization
+        )
+
+        supervisor_fields = {
+            'last_name': data.get('supervisor_last_name'),
+            'first_name': data.get('supervisor_first_name'),
+            'middle_name': data.get('supervisor_middle_name'),
+            'phone_number': data.get('supervisor_phone'),
+            'position': data.get('supervisor_position')
+        }
+
+        for field, value in supervisor_fields.items():
+            if value is not None:
+                setattr(supervisor, field, value)
+
+        try:
+            supervisor.full_clean()
+            supervisor.save()
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': 'Ошибка валидации данных руководителя',
+                'details': dict(e)
+            }, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Данные успешно обновлены'
+        })
+
+    except Account.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Пользователь не найден'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Внутренняя ошибка сервера',
+            'details': str(e)
+        }, status=500)
 
 
 @csrf_exempt

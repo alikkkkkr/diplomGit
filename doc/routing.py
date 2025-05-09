@@ -39,6 +39,7 @@ urlpatterns = [
     path('delete_document_ajax/<int:document_id>/', v.delete_document_ajax, name='delete_document_ajax'),
     path('get_groups/', v.get_groups, name='get_groups'),
     path('prakties/', v.prakties, name='prakties'),  # Основная страница
+    path('download_filled_document_supervisor/<int:document_id>/<int:intern_id>/', v.download_filled_document_supervisor, name='download_filled_document_supervisor'),
 
     path('add_practice/', v.add_practice, name='add_practice'),
     path('edit_practice/<int:practice_id>/', v.edit_practice, name='edit_practice'),

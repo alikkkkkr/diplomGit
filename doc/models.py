@@ -383,7 +383,7 @@ class Specialty(models.Model):
                                      verbose_name="Классификация")
 
     def __str__(self):
-        return self.code
+        return f"{self.code} - {self.organization.name}"
 
 
 class OrganizationSupervisor(models.Model):

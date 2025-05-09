@@ -1,8 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
     <div class="container mt-5">
+        {% if user.role.name == 'Организация' and organization %}
+            <div class="mb-4">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target="#organizationModal">
+                    Просмотр данных организации
+                </button>
+            </div>
+        {% endif %}
+
         <div class="row justify-content-between align-items-center mb-4">
-            <!-- Заголовок и кнопки для студентов -->
             <div class="col-md-6">
                 <h1 class="mb-3" style="font-weight: 700; font-size: 2rem;">Список студентов</h1>
             </div>
@@ -36,10 +44,42 @@
         {% regroup interns|dictsort:"group.name" by group.name as intern_groups %}
         {% for group in intern_groups %}
             <div class="mb-5" id="group-{{ group.grouper|slugify }}">
-                <!-- Заголовок группы -->
-                <h2 class="mb-3" style="font-weight: 600; font-size: 1.8rem; color: #333;">
-                    {{ group.grouper }} <!-- Название группы -->
-                </h2>
+                <!-- Заголовок группы с информацией о специальности -->
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h2 class="mb-0" style="font-weight: 600; font-size: 1.8rem;">
+                                Группа: {{ group.grouper }}
+                            </h2>
+                            <div class="specialty-badge">
+                                {% with group.list.0.group.specialty as specialty %}
+                                    <span class="badge bg-info">{{ specialty.code }}</span>
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Специальность:</strong>
+                                    {{ group.list.0.group.specialty.name }}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Квалификация:</strong>
+                                    {% if group.list.0.group.specialty.organization %}
+                                        <span class="badge bg-warning text-dark">
+                                            {{ group.list.0.group.specialty.organization.name }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">не указана</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Таблица с данными для текущей группы -->
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped">
@@ -58,7 +98,7 @@
                         <tbody>
                         {% for intern in group.list|dictsort:"last_name" %}
                             <tr {% if intern.is_modified %}class="modified-row"{% endif %}>
-                                <td class="text-center">{{ forloop.counter }}</td> <!-- Нумерация студентов в группе -->
+                                <td class="text-center">{{ forloop.counter }}</td>
                                 <td>
                                     <a href="{% url 'intern_detail' intern.id %}">{{ intern.last_name|default:"-" }}</a>
                                 </td>
@@ -69,9 +109,7 @@
                                 <td>{{ intern.metro_station|default:"-" }}</td>
                                 <td>
                                     {% if intern.organization %}
-                                        <a href="{% url 'organization_detail' intern.organization.id %}">
-                                            {{ intern.organization.full_name }}
-                                        </a>
+                                        {{ intern.organization.full_name }}
                                     {% else %}
                                         -
                                     {% endif %}
@@ -85,6 +123,114 @@
         {% empty %}
             <p class="text-center" style="font-size: 1.2rem; color: #666;">Нет данных о студентах.</p>
         {% endfor %}
+    </div>
+
+    <!-- Модальное окно для данных организации -->
+    <div class="modal fade" id="organizationModal" tabindex="-1" aria-labelledby="organizationModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="organizationModalLabel">Данные организации</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="organizationForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="full_name" class="form-label">Полное наименование</label>
+                                <input type="text" class="form-control" id="full_name" name="full_name"
+                                       value="{{ organization.full_name|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Электронная почта</label>
+                                <input type="email" class="form-control" id="email" name="email"
+                                       value="{{ organization.email|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="legal_address" class="form-label">Юридический адрес</label>
+                                <input type="text" class="form-control" id="legal_address" name="legal_address"
+                                       value="{{ organization.legal_address|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="actual_address" class="form-label">Фактический адрес</label>
+                                <input type="text" class="form-control" id="actual_address" name="actual_address"
+                                       value="{{ organization.actual_address|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="inn" class="form-label">ИНН</label>
+                                <input type="text" class="form-control" id="inn" name="inn"
+                                       value="{{ organization.inn|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="kpp" class="form-label">КПП</label>
+                                <input type="text" class="form-control" id="kpp" name="kpp"
+                                       value="{{ organization.kpp|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ogrn" class="form-label">ОГРН</label>
+                                <input type="text" class="form-control" id="ogrn" name="ogrn"
+                                       value="{{ organization.ogrn|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="phone_number" class="form-label">Телефон</label>
+                                <input type="text" class="form-control" id="phone_number" name="phone_number"
+                                       value="{{ organization.phone_number|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3">Руководитель организации</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="supervisor_last_name" class="form-label">Фамилия</label>
+                                <input type="text" class="form-control" id="supervisor_last_name"
+                                       name="supervisor_last_name"
+                                       value="{{ supervisor.last_name|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="supervisor_first_name" class="form-label">Имя</label>
+                                <input type="text" class="form-control" id="supervisor_first_name"
+                                       name="supervisor_first_name"
+                                       value="{{ supervisor.first_name|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="supervisor_middle_name" class="form-label">Отчество</label>
+                                <input type="text" class="form-control" id="supervisor_middle_name"
+                                       name="supervisor_middle_name"
+                                       value="{{ supervisor.middle_name|default_if_none:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="supervisor_phone" class="form-label">Телефон руководителя</label>
+                                <input type="text" class="form-control" id="supervisor_phone" name="supervisor_phone"
+                                       value="{{ supervisor.phone_number|default_if_none:'' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="supervisor_position" class="form-label">Должность</label>
+                                <input type="text" class="form-control" id="supervisor_position"
+                                       name="supervisor_position"
+                                       value="{{ supervisor.position|default_if_none:'' }}">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" id="saveOrganizationData">Сохранить изменения</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -104,11 +250,39 @@
                 });
 
                 if (matchFound) {
-                    row.style.display = ''; // Показываем строку
+                    row.style.display = '';
                 } else {
-                    row.style.display = 'none'; // Скрываем строку
+                    row.style.display = 'none';
                 }
             });
+        });
+
+        // Обработчик сохранения данных организации
+        document.getElementById('saveOrganizationData').addEventListener('click', function () {
+            const formData = new FormData(document.getElementById('organizationForm'));
+            const data = Object.fromEntries(formData.entries());
+
+            fetch('/organization/{{ organization.id }}/update/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Данные успешно сохранены');
+                        location.reload();
+                    } else {
+                        alert('Ошибка при сохранении: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Произошла ошибка при сохранении данных');
+                });
         });
     </script>
 
@@ -125,6 +299,18 @@
         a:hover {
             text-decoration: underline;
         }
-    </style>
 
+        .specialty-badge .badge {
+            font-size: 0.9rem;
+            padding: 0.35em 0.65em;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+        }
+
+        .modal-content {
+            padding: 20px;
+        }
+    </style>
 {% endblock %}
