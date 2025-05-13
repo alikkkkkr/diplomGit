@@ -20,13 +20,11 @@ from django.db import router
 from django.urls import path, include
 from django.conf.urls.static import static
 
-from doc.views import metrics_view
-
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('doc.routing')),
     path('metrics/', include('django_prometheus.urls')),
-    path('metrics/', metrics_view),
+    # path('metrics/', metrics_view),
 ]
 
 if settings.DEBUG:

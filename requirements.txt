@@ -4,3 +4,4 @@ prometheus_client~=0.21.1
 future~=1.0.0
 ttkthemes~=3.2.2
 certifi~=2025.1.31
+python-docx==0.8.11

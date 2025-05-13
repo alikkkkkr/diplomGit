@@ -1,5 +1,6 @@
 from django.urls import path, re_path, include
 import doc.views as v
+# index.php index.html
 
 urlpatterns = [
     path('', v.interns_list, name='indexPage'),

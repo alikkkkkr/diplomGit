@@ -7,7 +7,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.template.loader import render_to_string
 from docx.shared import Pt
-from prometheus_client import generate_latest
 from .forms import *
 import pandas as pd
 from .models import *
@@ -16,33 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.core.paginator import Paginator
 from docx import Document as DocxDocument
-from .metrics import REQUEST_COUNT, RESPONSE_TIME, ACTIVE_USERS
 import time
-
-
-def metrics_view(request):
-    metrics = generate_latest()
-    return HttpResponse(metrics, content_type='text/plain')
-
-
-def my_view(request):
-    start_time = time.time()
-
-    # Логика view
-    ACTIVE_USERS.inc()  # Увеличиваем счетчик активных пользователей
-
-    # Замер времени выполнения
-    response_time = time.time() - start_time
-    RESPONSE_TIME.labels(method=request.method, path=request.path).observe(response_time)
-
-    # Счетчик запросов
-    REQUEST_COUNT.labels(
-        method=request.method,
-        path=request.path,
-        status=200
-    ).inc()
-
-    return HttpResponse("Hello World")
 
 
 def upload_interns(request):
