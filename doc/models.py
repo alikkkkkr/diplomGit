@@ -33,7 +33,7 @@ class Document(models.Model):
     practice = models.ForeignKey('Practice', on_delete=models.CASCADE, verbose_name="Практика", null=True, blank=True)
     uploaded_by = models.ForeignKey('Account', on_delete=models.CASCADE, verbose_name="Загружено")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата загрузки")
-    is_auto_fillable = models.BooleanField(default=False, verbose_name="Автозаполняемый")  # Новое поле
+    is_auto_fillable = models.BooleanField(default=False, verbose_name="Автозаполняемый")
 
     def __str__(self):
         return self.title
