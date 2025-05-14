@@ -52,6 +52,8 @@ def upload_interns(request):
                 specialty_code = None
                 if group_name.startswith(("П50", "П")):  # Программисты
                     specialty_code = "09.02.07"
+                elif group_name.startswith(("Э50", "Э")):  # Программисты
+                    specialty_code = "09.02.01"
                 else:
                     raise ValueError(f"Неизвестная группа: {group_name}. Не удалось определить специальность.")
 

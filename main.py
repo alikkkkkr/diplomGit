@@ -1236,6 +1236,7 @@ class StudentManagementApp:
 
                 # Определяем специальность
                 specialty_code = "09.02.07" if group_name.startswith(("П50", "П")) else None
+                specialty_code = "09.02.01" if group_name.startswith(("Э50", "Э")) else None
                 if not specialty_code:
                     continue
 
